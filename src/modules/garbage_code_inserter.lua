@@ -1,4 +1,6 @@
 local GarbageCodeInserter = {}
+local Parser = require("Parser")
+local Ast = require("Parser/Ast")
 
 local LOWERCASE_A, LOWERCASE_Z = 97, 122
 local MAX_RANDOM_NUMBER = 100
@@ -75,9 +77,19 @@ function GarbageCodeInserter.process(code, garbage_blocks)
     if type(garbage_blocks) ~= "number" then
         error("garbage_blocks must be a number", 2)
     end
-    local prefix_garbage = generateGarbage(garbage_blocks)
-    local suffix_garbage = generateGarbage(garbage_blocks)
-    return table.concat({prefix_garbage, code, suffix_garbage}, "\n")
+    local ok, parsed = Parser.parse(code)
+    if not ok then return code end
+    local function parse_garbage()
+        local chunk = generateGarbage(garbage_blocks)
+        local garbage_ok, parsed_garbage = Parser.parse(chunk)
+        return garbage_ok and parsed_garbage.root.body or {}
+    end
+    local prefix, suffix = parse_garbage(), parse_garbage()
+    local body = {}
+    for _, stat in ipairs(prefix) do body[#body + 1] = stat end
+    for _, stat in ipairs(parsed.root.body) do body[#body + 1] = stat end
+    for _, stat in ipairs(suffix) do body[#body + 1] = stat end
+    return Ast.render(Ast.block(body))
 end
 
 function GarbageCodeInserter.setSeed(seed)

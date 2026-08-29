@@ -1,19 +1,3 @@
--- Parser/LuauPolyfills.lua
--- Lua 5.4 fallbacks for the Roblox Luau standard-library functions that the
--- transpiled Ast parser (Parser/LuauParser) relies on. The parser body is
--- produced by transpiling Luau source, so it calls Luau-only APIs that do not
--- exist in a stock Lua 5.4 runtime.
---
--- Every helper is installed *only if missing*, so this module is a no-op in a
--- native Luau environment and cannot shadow existing implementations in the
--- project's Lua runtime. It is loaded by Parser/init.lua before the parser.
-
--- buffer
--- Luau buffer offsets are 0-based. Values are written/read little-endian.
--- A buffer is represented internally as an array of bytes (indexed 1..n) with a
--- trailing length sentinel, which allows O(1) writes at arbitrary offsets and
--- unbounded growth, matching Luau's growable buffers.
-
 local M = {}
 
 local b = buffer
@@ -21,7 +5,7 @@ if not b then
     b = {}
 
     local function ensure_room(buf, offset)
-        -- offset is 0-based byte index; ensure the backing array reaches it.
+
         while #buf < offset + 1 do
             buf[#buf + 1] = 0
         end
@@ -88,11 +72,6 @@ if not b then
     buffer = b
 end
 
--- vector
--- Only the 2-component position flavor is used by the parser. Expose both the
--- lowercase `.x`/`.y` accessors used by the transpiled code and the standard
--- `.X`/`.Y` for parity with native Luau vectors.
-
 if not vector then
     vector = {}
 
@@ -101,10 +80,8 @@ if not vector then
     end
 end
 
--- table extensions
-
 if not table.freeze then
-    -- Freezing is a no-op in vanilla Lua; the table is still mutable.
+
     function table.freeze(t)
         return t
     end

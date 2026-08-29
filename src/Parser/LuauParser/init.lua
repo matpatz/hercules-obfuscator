@@ -2,10 +2,6 @@
 --!strict
 --!native
 
--- // Parser Settings
-
-
--- [retranspile] top-level locals moved into the H namespace table (scope-aware)
 local H = {}
 
  H.LuauIntegerType2 = false
@@ -19,16 +15,12 @@ local H = {}
 
  H.LuauParseErrorLimit = 100
 
--- // Requires modules
-
  H.Confusables = require"Parser/LuauParser/Confusables"
  H.Syntax = require"Parser/LuauParser/Syntax"
 
  H.EmptyArray = table.freeze({})
 
  H.hotcommentHeader = true
-
--- // String types
 
  H.BraceType = {
 	InterpolatedString = 0,
@@ -43,13 +35,12 @@ local H = {}
 }
 
  H.CstQuotes = {
-	QuotedSingle = 0, -- ''
-	QuotedDouble = 1, -- ""
-	QuotedRaw = 2, -- [[]]
-	QuotedInterp = 3, -- ``
+	QuotedSingle = 0,
+	QuotedDouble = 1,
+	QuotedRaw = 2,
+	QuotedInterp = 3,
 }
 
--- // Lookup for keywords
  H.ReversedKeywords = {
 	[291] = "and",
 	[292] = "break",
@@ -87,25 +78,23 @@ for Byte = 48, 57 do
 end
 
  H.SimpleTokens = buffer.create(512)
-buffer.writeu16(H.SimpleTokens, 40 * 2, 40) -- (
-buffer.writeu16(H.SimpleTokens, 41 * 2, 41) -- )
-buffer.writeu16(H.SimpleTokens, 93 * 2, 93) -- ]
-buffer.writeu16(H.SimpleTokens, 59 * 2, 59) -- ;
-buffer.writeu16(H.SimpleTokens, 44 * 2, 44) -- ,
-buffer.writeu16(H.SimpleTokens, 35 * 2, 35) -- #
-buffer.writeu16(H.SimpleTokens, 63 * 2, 63) -- ?
-buffer.writeu16(H.SimpleTokens, 38 * 2, 38) -- &
-buffer.writeu16(H.SimpleTokens, 124 * 2, 124) -- |
-buffer.writeu16(H.SimpleTokens, 61 * 2, 257) -- ==
-buffer.writeu16(H.SimpleTokens, 60 * 2, 258) -- <=
-buffer.writeu16(H.SimpleTokens, 62 * 2, 259) -- >=
-buffer.writeu16(H.SimpleTokens, 126 * 2, 260) -- ~=
-buffer.writeu16(H.SimpleTokens, 43 * 2, 270) -- +=
-buffer.writeu16(H.SimpleTokens, 42 * 2, 272) -- *=
-buffer.writeu16(H.SimpleTokens, 37 * 2, 275) -- %=
-buffer.writeu16(H.SimpleTokens, 94 * 2, 276) -- ^=
-
--- // Lookup for operators
+buffer.writeu16(H.SimpleTokens, 40 * 2, 40)
+buffer.writeu16(H.SimpleTokens, 41 * 2, 41)
+buffer.writeu16(H.SimpleTokens, 93 * 2, 93)
+buffer.writeu16(H.SimpleTokens, 59 * 2, 59)
+buffer.writeu16(H.SimpleTokens, 44 * 2, 44)
+buffer.writeu16(H.SimpleTokens, 35 * 2, 35)
+buffer.writeu16(H.SimpleTokens, 63 * 2, 63)
+buffer.writeu16(H.SimpleTokens, 38 * 2, 38)
+buffer.writeu16(H.SimpleTokens, 124 * 2, 124)
+buffer.writeu16(H.SimpleTokens, 61 * 2, 257)
+buffer.writeu16(H.SimpleTokens, 60 * 2, 258)
+buffer.writeu16(H.SimpleTokens, 62 * 2, 259)
+buffer.writeu16(H.SimpleTokens, 126 * 2, 260)
+buffer.writeu16(H.SimpleTokens, 43 * 2, 270)
+buffer.writeu16(H.SimpleTokens, 42 * 2, 272)
+buffer.writeu16(H.SimpleTokens, 37 * 2, 275)
+buffer.writeu16(H.SimpleTokens, 94 * 2, 276)
 
  H.BinaryOp = {
 	Add = 0,
@@ -124,17 +113,22 @@ buffer.writeu16(H.SimpleTokens, 94 * 2, 276) -- ^=
 	CompareGe = 13,
 	And = 14,
 	Or = 15,
+	BitAnd = 16,
+	BitOr = 17,
+	BitXor = 18,
+	ShiftLeft = 19,
+	ShiftRight = 20,
 }
 
  H.BinaryPriority = {
-	[H.BinaryOp.Add] = { 6, 6 },
-	[H.BinaryOp.Sub] = { 6, 6 },
-	[H.BinaryOp.Mul] = { 7, 7 },
-	[H.BinaryOp.Div] = { 7, 7 },
-	[H.BinaryOp.FloorDiv] = { 7, 7 },
-	[H.BinaryOp.Mod] = { 7, 7 },
-	[H.BinaryOp.Pow] = { 10, 9 },
-	[H.BinaryOp.Concat] = { 5, 4 },
+	[H.BinaryOp.Add] = { 9, 9 },
+	[H.BinaryOp.Sub] = { 9, 9 },
+	[H.BinaryOp.Mul] = { 10, 10 },
+	[H.BinaryOp.Div] = { 10, 10 },
+	[H.BinaryOp.FloorDiv] = { 10, 10 },
+	[H.BinaryOp.Mod] = { 10, 10 },
+	[H.BinaryOp.Pow] = { 12, 11 },
+	[H.BinaryOp.Concat] = { 8, 7 },
 	[H.BinaryOp.CompareNe] = { 3, 3 },
 	[H.BinaryOp.CompareEq] = { 3, 3 },
 	[H.BinaryOp.CompareLt] = { 3, 3 },
@@ -143,17 +137,26 @@ buffer.writeu16(H.SimpleTokens, 94 * 2, 276) -- ^=
 	[H.BinaryOp.CompareGe] = { 3, 3 },
 	[H.BinaryOp.And] = { 2, 2 },
 	[H.BinaryOp.Or] = { 1, 1 },
+	[H.BinaryOp.BitOr] = { 4, 4 },
+	[H.BinaryOp.BitXor] = { 5, 5 },
+	[H.BinaryOp.BitAnd] = { 6, 6 },
+	[H.BinaryOp.ShiftLeft] = { 7, 7 },
+	[H.BinaryOp.ShiftRight] = { 7, 7 },
 }
 
  H.CompoundLookup = {
-	[274] = H.BinaryOp.FloorDiv, -- FloorDivAssign
-	[277] = H.BinaryOp.Concat, -- ConcatAssign
-	[275] = H.BinaryOp.Mod, -- ModAssign
-	[276] = H.BinaryOp.Pow, -- PowAssign
-	[270] = H.BinaryOp.Add, -- AddAssign
-	[271] = H.BinaryOp.Sub, -- SubAssign
-	[272] = H.BinaryOp.Mul, -- MulAssign
-	[273] = H.BinaryOp.Div, -- DivAssign
+	[274] = H.BinaryOp.FloorDiv,
+	[277] = H.BinaryOp.Concat,
+	[275] = H.BinaryOp.Mod,
+	[276] = H.BinaryOp.Pow,
+	[270] = H.BinaryOp.Add,
+	[271] = H.BinaryOp.Sub,
+	[272] = H.BinaryOp.Mul,
+	[273] = H.BinaryOp.Div,
+	[313] = H.BinaryOp.ShiftLeft,
+	[314] = H.BinaryOp.ShiftRight,
+	[315] = H.BinaryOp.BitAnd,
+	[316] = H.BinaryOp.BitOr,
 }
 
  H.BinaryOpLookup = {
@@ -162,38 +165,43 @@ buffer.writeu16(H.SimpleTokens, 94 * 2, 276) -- ^=
 	[42] = H.BinaryOp.Mul,
 	[47] = H.BinaryOp.Div,
 
-	[265] = H.BinaryOp.FloorDiv, -- FloorDiv
+	[265] = H.BinaryOp.FloorDiv,
 
 	[37] = H.BinaryOp.Mod,
 	[94] = H.BinaryOp.Pow,
 
-	[261] = H.BinaryOp.Concat, -- Dot2
-	[260] = H.BinaryOp.CompareNe, -- NotEqual
-	[257] = H.BinaryOp.CompareEq, -- Equal
+	[261] = H.BinaryOp.Concat,
+	[260] = H.BinaryOp.CompareNe,
+	[257] = H.BinaryOp.CompareEq,
 
 	[60] = H.BinaryOp.CompareLt,
 
-	[258] = H.BinaryOp.CompareLe, -- LessEqual
+	[258] = H.BinaryOp.CompareLe,
 
 	[62] = H.BinaryOp.CompareGt,
 
-	[259] = H.BinaryOp.CompareGe, -- GreaterEqual
-	[291] = H.BinaryOp.And, -- ReservedAnd
-	[305] = H.BinaryOp.Or, -- ReservedOr
+	[259] = H.BinaryOp.CompareGe,
+	[291] = H.BinaryOp.And,
+	[305] = H.BinaryOp.Or,
+	[38] = H.BinaryOp.BitAnd,
+	[124] = H.BinaryOp.BitOr,
+	[126] = H.BinaryOp.BitXor,
+	[290] = H.BinaryOp.ShiftLeft,
+	[312] = H.BinaryOp.ShiftRight,
 }
 
  H.UnaryOpLookup = {
-	[304] = 0, -- ReservedNot
-	[45] = 1, -- Minus
-	[35] = 2, -- Len
+	[304] = 0,
+	[45] = 1,
+	[35] = 2,
 }
 
  H.BlockFollow = {
-	[295] = true, -- ReservedElseif
-	[310] = true, -- ReservedUntil
-	[294] = true, -- ReservedElse
-	[296] = true, -- ReservedEnd
-	[0] = true, -- Eof
+	[295] = true,
+	[310] = true,
+	[294] = true,
+	[296] = true,
+	[0] = true,
 }
 
  H.ConstantLiteral = {
@@ -238,20 +246,18 @@ buffer.writeu16(H.SimpleTokens, 94 * 2, 276) -- ^=
 	__type = true,
 }
 
--- // Lookups for Lexer
-
  H.HexDigits= {}
  H.HexVal= {}
  H.Digits= {}
  H.Alpha= {}
 
  H.Spaces = {
-	[09] = true, -- \t
-	[10] = true, -- \n
-	[11] = true, -- \v
-	[12] = true, -- \f
-	[13] = true, -- \r
-	[32] = true, -- space
+	[09] = true,
+	[10] = true,
+	[11] = true,
+	[12] = true,
+	[13] = true,
+	[32] = true,
 }
 
  H.Escapes = {
@@ -264,7 +270,7 @@ buffer.writeu16(H.SimpleTokens, 94 * 2, 276) -- ^=
 	[118] = 11,
 }
 
-for i = 48, 57 do -- '0' - '9'
+for i = 48, 57 do
 	H.HexDigits[i] = true
 	H.Digits[i] = true
 end
@@ -272,22 +278,20 @@ end
 for i = 65, 90 do
 	if i <= 70 then
 		H.HexDigits[i] = true
-	end -- 'a' - 'f'
+	end
 	H.Alpha[i] = true
 end
 
 for i = 97, 122 do
 	if i <= 102 then
 		H.HexDigits[i] = true
-	end -- 'A' - 'F'
+	end
 	H.Alpha[i] = true
 end
 
-for i = 48, 57 do H.HexVal[i] = i - 48 end -- '0'-'9'
-for i = 65, 70 do H.HexVal[i] = i - 55 end -- 'A'-'F'
-for i = 97, 102 do H.HexVal[i] = i - 87 end -- 'a'-'f'
-
--- // Lexer helper
+for i = 48, 57 do H.HexVal[i] = i - 48 end
+for i = 65, 70 do H.HexVal[i] = i - 55 end
+for i = 97, 102 do H.HexVal[i] = i - 87 end
 
 H.fixupQuotedString = function (data)	
 if #data == 0 or not string.find(data, "\\") then
@@ -303,7 +307,7 @@ if #data == 0 or not string.find(data, "\\") then
 	while i < size do
 local __DARKLUA_CONTINUE_10=false repeat		local ch = buffer.readu8(src, i)
 
-		if ch ~= 92 then -- not '\'
+		if ch ~= 92 then
 			buffer.writeu8(buf, write, ch)
 			write =write+ 1
 			i =i+ 1
@@ -311,16 +315,16 @@ __DARKLUA_CONTINUE_10=true			break
 		end
 
 		if i + 1 == size then
-			return false, nil -- Trailing backslash
+			return false, nil
 		end
 
 		local escape = buffer.readu8(src, i + 1)
-		i =i+ 2 -- skip \ and the escape char
+		i =i+ 2
 
-		if escape == 10 then -- \n
+		if escape == 10 then
 			buffer.writeu8(buf, write, 10)
 			write =write+ 1
-		elseif escape == 13 then -- \r
+		elseif escape == 13 then
 			buffer.writeu8(buf, write, 10)
 			write =write+ 1
 			if i < size and buffer.readu8(src, i) == 10 then
@@ -328,7 +332,7 @@ __DARKLUA_CONTINUE_10=true			break
 			end
 		elseif escape == 0 then
 			return false, nil
-		elseif escape == 120 then -- 'x'
+		elseif escape == 120 then
 			if i + 2 > size then
 				return false, nil
 			end
@@ -347,17 +351,17 @@ __DARKLUA_CONTINUE_10=true			break
 			buffer.writeu8(buf, write, code)
 			write =write+ 1
 			i =i+ 2
-		elseif escape == 122 then -- 'z'
+		elseif escape == 122 then
 			while i < size and H.Spaces[buffer.readu8(src, i)] do
 				i =i+ 1
 			end
-		elseif escape == 117 then -- 'u'
+		elseif escape == 117 then
 			if i + 3 > size then
 				return false, nil
 			end
 			if buffer.readu8(src, i) ~= 123 then
 				return false, nil
-			end -- '{'
+			end
 			i =i+ 1
 
 			if buffer.readu8(src, i) == 125 then
@@ -392,7 +396,7 @@ __DARKLUA_CONTINUE_10=true			break
 					return false, nil
 				end
 			end
-			i =i+ 1 -- skip '}'
+			i =i+ 1
 
 			if code < 0x80 then
 				buffer.writeu8(buf, write, code)
@@ -495,6 +499,18 @@ if t == 0 then
 		return "'^='"
 	elseif t == 277 then
 		return "'..='"
+	elseif t == 290 then
+		return "'<<'"
+	elseif t == 312 then
+		return "'>>'"
+	elseif t == 313 then
+		return "'<<='"
+	elseif t == 314 then
+		return "'>>='"
+	elseif t == 315 then
+		return "'&='"
+	elseif t == 316 then
+		return "'|='"
 	elseif t == 278 or t == 279 then
 		if data then
 			return string.format('"%s"', tostring(data))		
@@ -574,8 +590,6 @@ else
 	end
 end
 
--- // Parser Helpers
-
 H.isLiteralTable = function (expr)	
 if expr.kind ~= "ExprTable" then
 		return false
@@ -593,8 +607,6 @@ if expr.kind ~= "ExprTable" then
 
 	return true
 end
-
--- // Attributes
 
 H.deprecatedArgsValidator = function (attrLoc, args)	
 local errors= {}
@@ -656,21 +668,14 @@ end
 	debugnoinline = {type = "DebugNoinline"},
 }
 
--- // Main
-
  H.options = {} 
--- // Settings init
-
 
  H.captureComments = H.options.captureComments
  H.storeCstData = H.options.storeCstData
 
--- // Lexer State & Buffer
-
  H.buff_data = buffer.create(0)
  H.size = 0
 
--- Current State
  H.offset = 0
  H.line = 0
  H.lineOffset = 0
@@ -678,28 +683,21 @@ end
  H.braceStack= {}
  H.braceStackSize = 0
 
--- // Current Token State
+ H.token_type = 0
 
- H.token_type = 0 -- Eof
-
--- Locations
  H.token_start_line = 0
  H.token_start_col = 0
  H.token_end_line = 0
  H.token_end_col = 0
 
--- Previous Token Location (for errors/end mismatch)
  H.prev_start_line = 0
  H.prev_start_col = 0
  H.prev_end_line = 0
  H.prev_end_col = 0
 
--- Payload
  H.token_string= nil
  H.token_aux= nil
  H.token_codepoint= nil
-
--- // Parser init
 
  H.recursionCounter = 0
 
@@ -710,17 +708,7 @@ end
  H.hasModuleReturn = false
  H.classesWithinModule= {}
 
-
--- // Suspect State
-
-
-
-
-
-
-
-
- H.next_type = 0 -- Eof
+ H.next_type = 0
  H.next_start_line = 0
  H.next_end_line = 0
 
@@ -731,21 +719,17 @@ end
  H.next_string= nil
  H.next_aux= nil
 
- H.suspect_type = 0 -- Eof sentinel
+ H.suspect_type = 0
 
  H.suspect_line = 0
 
- H.matchRecovery = table.create(312, 0)
-H.matchRecovery[0] = 1 -- Eof
-
--- // Stacks
+ H.matchRecovery = table.create(320, 0)
+H.matchRecovery[0] = 1
 
  H.functionStack= {{ vararg = true, loopDepth = 0 }}
 
  H.localStack= {}
  H.localMap= {}
-
--- // Lexer // --
 
 H.lex = function (skip_comments)
 	local ptr = H.offset
@@ -759,12 +743,12 @@ H.lex = function (skip_comments)
 
 	while true do
 		if ptr >= sourceSize then
-			-- EOF Logic
+
 			H.offset = ptr
 			H.line = cur_line
 			H.lineOffset = cur_line_offset
 
-			H.next_type = 0 -- Eof
+			H.next_type = 0
 			H.next_end_line = cur_line
 			H.next_end_col = ptr - cur_line_offset
 
@@ -775,13 +759,13 @@ H.lex = function (skip_comments)
 
 		local c = buffer.readu8(buff, ptr)
 
-		if c == 32 or c == 9 then -- space or tab
+		if c == 32 or c == 9 then
 			ptr =ptr+ 1
-		elseif c == 10 then -- \n
+		elseif c == 10 then
 			cur_line =cur_line+ 1
 			ptr =ptr+ 1
 			cur_line_offset = ptr
-		elseif c == 13 then -- \r
+		elseif c == 13 then
 			if ptr + 1 < sourceSize and buffer.readu8(buff, ptr + 1) == 10 then
 				ptr =ptr+ 2
 				cur_line =cur_line+ 1
@@ -789,10 +773,10 @@ H.lex = function (skip_comments)
 			else
 				ptr =ptr+ 1
 			end
-		elseif c == 11 or c == 12 then -- \v, \f
+		elseif c == 11 or c == 12 then
 			ptr =ptr+ 1
 		else
-			break -- not whitespace
+			break
 		end
 	end
 
@@ -805,9 +789,8 @@ H.lex = function (skip_comments)
 	local ch = buffer.readu8(buff, ptr)
 	local characterType = buffer.readu8(IdentifierCharactersLookup, ch)
 	local start_ptr = ptr
-	ptr =ptr+ 1 -- Consume current char
+	ptr =ptr+ 1
 
-	-- Identifiers / Keywords
 	if characterType == 1 then
 		while ptr < sourceSize do
 			local c = buffer.readu8(buff, ptr)
@@ -823,67 +806,67 @@ H.lex = function (skip_comments)
 
 		if identifierLength == 2 then
 			local bytes = buffer.readu16(buff, start_ptr)
-			if bytes == 0x6f64 then -- do
+			if bytes == 0x6f64 then
 				identifierType = 293
-			elseif bytes == 0x6669 then -- if
+			elseif bytes == 0x6669 then
 				identifierType = 300
-			elseif bytes == 0x6e69 then -- in
+			elseif bytes == 0x6e69 then
 				identifierType = 301
-			elseif bytes == 0x726f then -- or
+			elseif bytes == 0x726f then
 				identifierType = 305
 			end
 		elseif identifierLength == 3 then
 			local firstBytes = buffer.readu16(buff, start_ptr)
 			local thirdByte = buffer.readu8(buff, start_ptr + 2)
-			if firstBytes == 0x6e61 and thirdByte == 100 then -- and
+			if firstBytes == 0x6e61 and thirdByte == 100 then
 				identifierType = 291
-			elseif firstBytes == 0x6e65 and thirdByte == 100 then -- end
+			elseif firstBytes == 0x6e65 and thirdByte == 100 then
 				identifierType = 296
-			elseif firstBytes == 0x6f66 and thirdByte == 114 then -- for
+			elseif firstBytes == 0x6f66 and thirdByte == 114 then
 				identifierType = 298
-			elseif firstBytes == 0x696e and thirdByte == 108 then -- nil
+			elseif firstBytes == 0x696e and thirdByte == 108 then
 				identifierType = 303
-			elseif firstBytes == 0x6f6e and thirdByte == 116 then -- not
+			elseif firstBytes == 0x6f6e and thirdByte == 116 then
 				identifierType = 304
 			end
 		elseif identifierLength == 4 then
 			local bytes = buffer.readu32(buff, start_ptr)
-			if bytes == 0x65736c65 then -- else
+			if bytes == 0x65736c65 then
 				identifierType = 294
-			elseif bytes == 0x6e656874 then -- then
+			elseif bytes == 0x6e656874 then
 				identifierType = 308
-			elseif bytes == 0x65757274 then -- true
+			elseif bytes == 0x65757274 then
 				identifierType = 309
 			end
 		elseif identifierLength == 5 then
 			local firstBytes = buffer.readu32(buff, start_ptr)
 			local fifthByte = buffer.readu8(buff, start_ptr + 4)
-			if firstBytes == 0x61657262 and fifthByte == 107 then -- break
+			if firstBytes == 0x61657262 and fifthByte == 107 then
 				identifierType = 292
-			elseif firstBytes == 0x736c6166 and fifthByte == 101 then -- false
+			elseif firstBytes == 0x736c6166 and fifthByte == 101 then
 				identifierType = 297
-			elseif firstBytes == 0x61636f6c and fifthByte == 108 then -- local
+			elseif firstBytes == 0x61636f6c and fifthByte == 108 then
 				identifierType = 302
-			elseif firstBytes == 0x69746e75 and fifthByte == 108 then -- until
+			elseif firstBytes == 0x69746e75 and fifthByte == 108 then
 				identifierType = 310
-			elseif firstBytes == 0x6c696877 and fifthByte == 101 then -- while
+			elseif firstBytes == 0x6c696877 and fifthByte == 101 then
 				identifierType = 311
 			end
 		elseif identifierLength == 6 then
 			local firstBytes = buffer.readu32(buff, start_ptr)
 			local lastBytes = buffer.readu16(buff, start_ptr + 4)
-			if firstBytes == 0x65736c65 and lastBytes == 0x6669 then -- elseif
+			if firstBytes == 0x65736c65 and lastBytes == 0x6669 then
 				identifierType = 295
-			elseif firstBytes == 0x65706572 and lastBytes == 0x7461 then -- repeat
+			elseif firstBytes == 0x65706572 and lastBytes == 0x7461 then
 				identifierType = 306
-			elseif firstBytes == 0x75746572 and lastBytes == 0x6e72 then -- return
+			elseif firstBytes == 0x75746572 and lastBytes == 0x6e72 then
 				identifierType = 307
 			end
 		elseif
 			identifierLength == 8
 			and buffer.readu32(buff, start_ptr) == 0x636e7566
 			and buffer.readu32(buff, start_ptr + 4) == 0x6e6f6974
-		then -- function
+		then
 			identifierType = 299
 		end
 
@@ -891,7 +874,7 @@ H.lex = function (skip_comments)
 		if identifierType == 281 then
 			H.next_string = buffer.readstring(buff, start_ptr, ptr - start_ptr)
 		end
-		-- Numbers (0-9)
+
 	elseif characterType == 2 then
 		while ptr < sourceSize do
 			local numberChar = buffer.readu8(buff, ptr)
@@ -899,12 +882,12 @@ H.lex = function (skip_comments)
 
 			if numberCharacterType == 2 or numberChar == 46 or numberChar == 95 then
 				ptr =ptr+ 1
-			elseif numberChar == 101 or numberChar == 69 then -- e / E
+			elseif numberChar == 101 or numberChar == 69 then
 				ptr =ptr+ 1
 
 				if ptr < sourceSize then
 					local exp_ch = buffer.readu8(buff, ptr)
-					if exp_ch == 43 or exp_ch == 45 then -- + / -
+					if exp_ch == 43 or exp_ch == 45 then
 						ptr =ptr+ 1
 					end
 				end
@@ -923,11 +906,10 @@ H.lex = function (skip_comments)
 			end
 		end
 		
-		H.next_type = 280 -- Number
+		H.next_type = 280
 		H.next_string = buffer.readstring(buff, start_ptr, ptr - start_ptr)
 
-		-- Strings (" or ')
-	elseif ch == 34 or ch == 39 then -- " or '
+	elseif ch == 34 or ch == 39 then
 		local delim = ch
 		local content_start = ptr
 
@@ -935,20 +917,20 @@ H.lex = function (skip_comments)
 			local c = buffer.readu8(buff, ptr)
 			if c == delim then
 				break
-			elseif c == 92 then -- \
+			elseif c == 92 then
 				ptr =ptr+ 1
 				if ptr < sourceSize then
 					local esc = buffer.readu8(buff, ptr)
-					if esc == 10 then -- \n
+					if esc == 10 then
 						cur_line =cur_line+ 1
 						cur_line_offset = ptr + 1
-					elseif esc == 13 then -- \r
+					elseif esc == 13 then
 						if ptr + 1 < sourceSize and buffer.readu8(buff, ptr + 1) == 10 then
 							cur_line =cur_line+ 1
 							ptr =ptr+ 1
 							cur_line_offset = ptr + 1
 						end
-					elseif esc == 122 then -- z
+					elseif esc == 122 then
 						ptr =ptr+ 1
 						while ptr < sourceSize do
 							local wc = buffer.readu8(buff, ptr)
@@ -971,46 +953,61 @@ H.lex = function (skip_comments)
 						end
 					end
 				end
-			elseif c == 10 or c == 13 then -- \n / \r
-				H.next_type = 286 -- BrokenString
+			elseif c == 10 or c == 13 then
+				H.next_type = 286
 				break
 			end
 			ptr =ptr+ 1
 		end
 
-		if H.next_type == 286 then -- BrokenString
-			-- handled
+		if H.next_type == 286 then
+
 		elseif ptr >= sourceSize then
-			H.next_type = 286 -- BrokenString
+			H.next_type = 286
 		else
-			H.next_type = 279 -- QuotedString
+			H.next_type = 279
 			H.next_string = buffer.readstring(buff, content_start, ptr - content_start)
 			H.next_aux = delim == 39 and 0 or 1
-			ptr =ptr+ 1 -- consume closing delim
+			ptr =ptr+ 1
 		end
 
-		-- Operators & Punctuation
 	elseif buffer.readu16(SimpleTokensLookup, ch * 2) ~= 0 then
 		local directToken = buffer.readu16(SimpleTokensLookup, ch * 2)
-		if directToken > 255 and ptr < sourceSize and buffer.readu8(buff, ptr) == 61 then
+		local next_ch = (ptr < sourceSize and{(buffer.readu8(buff, ptr) )}or{0
+})[1]
+		if H.bitwise and (ch == 60 or ch == 62) and next_ch == ch then
+
+			ptr =ptr+ 1
+			local third_ch = (ptr < sourceSize and{(buffer.readu8(buff, ptr) )}or{0
+})[1]
+			if third_ch == 61 then
+				ptr =ptr+ 1
+				H.next_type = ch == 60 and 313 or 314
+			else
+				H.next_type = ch == 60 and 290 or 312
+			end
+		elseif H.bitwise and (ch == 38 or ch == 124) and next_ch == 61 then
+
+			ptr =ptr+ 1
+			H.next_type = ch == 38 and 315 or 316
+		elseif directToken > 255 and next_ch == 61 then
 			ptr =ptr+ 1
 			H.next_type = directToken
 		else
 			H.next_type = ch
 		end
-	elseif ch == 45 then -- '-'
+	elseif ch == 45 then
 		local next_ch = (ptr < sourceSize and{(buffer.readu8(buff, ptr) )}or{0
-})[1]		if next_ch == 62 then -- ->
+})[1]		if next_ch == 62 then
 			ptr =ptr+ 1
-			H.next_type = 263 -- SkinnyArrow
-		elseif next_ch == 61 then -- -=
+			H.next_type = 263
+		elseif next_ch == 61 then
 			ptr =ptr+ 1
-			H.next_type = 271 -- SubAssign
-		elseif next_ch == 45 then -- -- Comment
+			H.next_type = 271
+		elseif next_ch == 45 then
 			ptr =ptr+ 1
 			local comment_start = ptr
 
-			-- Block Comment --[
 			local is_block = false
 			if ptr < sourceSize and buffer.readu8(buff, ptr) == 91 then
 				local sep_start = ptr
@@ -1022,14 +1019,14 @@ H.lex = function (skip_comments)
 				end
 
 				if ptr < sourceSize and buffer.readu8(buff, ptr) == 91 then
-					-- Found long comment
+
 					is_block = true
 					ptr =ptr+ 1
 					local found_end = false
 
 					while ptr < sourceSize do
 						local c = buffer.readu8(buff, ptr)
-						if c == 93 then -- ]
+						if c == 93 then
 							local c2_idx = ptr + 1
 							local close_count = 0
 							while c2_idx < sourceSize and buffer.readu8(buff, c2_idx) == 61 do
@@ -1041,7 +1038,7 @@ H.lex = function (skip_comments)
 								found_end = true
 								break
 							end
-						elseif c == 10 then -- \n
+						elseif c == 10 then
 							cur_line =cur_line+ 1
 							cur_line_offset = ptr + 1
 						end
@@ -1049,26 +1046,26 @@ H.lex = function (skip_comments)
 					end
 
 					if not found_end then
-						H.next_type = 287 -- BrokenComment
+						H.next_type = 287
 					else
-						H.next_type = 283 -- BlockComment
+						H.next_type = 283
 					end
 				else
-					-- Not a block comment
-					ptr = sep_start -- Backtrack
+
+					ptr = sep_start
 				end
 			end
 
 			if not is_block then
-				-- Line Comment
+
 				while ptr < sourceSize do
 					local c = buffer.readu8(buff, ptr)
 					if c == 10 or c == 13 then
 						break
-					end -- \n or \r
+					end
 					ptr =ptr+ 1
 				end
-				H.next_type = 282 -- Comment
+				H.next_type = 282
 			end
 
 			if
@@ -1082,25 +1079,25 @@ H.lex = function (skip_comments)
 				H.next_string = buffer.readstring(buff, comment_start, ptr - comment_start)
 			end
 		else
-			H.next_type = 45 -- '-'
+			H.next_type = 45
 		end
-	elseif ch == 46 then -- '.'
+	elseif ch == 46 then
 		local next_ch = (ptr < sourceSize and{(buffer.readu8(buff, ptr) )}or{0
-})[1]		if next_ch == 46 then -- ..
+})[1]		if next_ch == 46 then
 			ptr =ptr+ 1
 			local third_ch = (ptr < sourceSize and{(buffer.readu8(buff, ptr) )}or{0
-})[1]			if third_ch == 46 then -- ...
+})[1]			if third_ch == 46 then
 				ptr =ptr+ 1
-				H.next_type = 262 -- Dot3
-			elseif third_ch == 61 then -- ..=
+				H.next_type = 262
+			elseif third_ch == 61 then
 				ptr =ptr+ 1
-				H.next_type = 277 -- ConcatAssign
+				H.next_type = 277
 			else
-				H.next_type = 261 -- Dot2
+				H.next_type = 261
 			end
 		else
 			if buffer.readu8(IdentifierCharactersLookup, next_ch) == 2 then
-				ptr =ptr- 1 -- Backtrack
+				ptr =ptr- 1
 				local n_start = ptr
 				while ptr < sourceSize do
 					local numberChar = buffer.readu8(buff, ptr)
@@ -1108,12 +1105,12 @@ H.lex = function (skip_comments)
 
 					if numberCharacterType == 2 or numberChar == 46 or numberChar == 95 then
 						ptr =ptr+ 1
-					elseif numberChar == 101 or numberChar == 69 then -- e / E
+					elseif numberChar == 101 or numberChar == 69 then
 						ptr =ptr+ 1
 
 						if ptr < sourceSize then
 							local exp_ch = buffer.readu8(buff, ptr)
-							if exp_ch == 43 or exp_ch == 45 then -- + / -
+							if exp_ch == 43 or exp_ch == 45 then
 								ptr =ptr+ 1
 							end
 						end
@@ -1132,37 +1129,36 @@ H.lex = function (skip_comments)
 					end
 				end
 				
-				H.next_type = 280 -- Number
+				H.next_type = 280
 				H.next_string = buffer.readstring(buff, n_start, ptr - n_start)
 			else
-				H.next_type = 46 -- '.'
+				H.next_type = 46
 			end
 		end
-	elseif ch == 47 then -- '/'
+	elseif ch == 47 then
 		local next_ch = (ptr < sourceSize and{(buffer.readu8(buff, ptr) )}or{0
 })[1]		if next_ch == 61 then
 			ptr =ptr+ 1
-			H.next_type = 273 -- DivAssign
+			H.next_type = 273
 		elseif next_ch == 47 then
 			ptr =ptr+ 1
 			if ptr < sourceSize and buffer.readu8(buff, ptr) == 61 then
 				ptr =ptr+ 1
-				H.next_type = 274 -- FloorDivAssign
+				H.next_type = 274
 			else
-				H.next_type = 265 -- FloorDiv
+				H.next_type = 265
 			end
 		else
 			H.next_type = 47
 		end
-	elseif ch == 58 then -- ':'
+	elseif ch == 58 then
 		if ptr < sourceSize and buffer.readu8(buff, ptr) == 58 then
 			ptr =ptr+ 1
-			H.next_type = 264 -- DoubleColon
+			H.next_type = 264
 		else
 			H.next_type = 58
 		end
 
-		-- Single Char / Interp
 	elseif
 		ch == 123
 		or ch == 125
@@ -1189,18 +1185,18 @@ H.lex = function (skip_comments)
 					while ptr < sourceSize do
 						local c = buffer.readu8(buff, ptr)
 
-						if c == 96 then -- `
-							H.next_type = 268 -- InterpStringEnd
+						if c == 96 then
+							H.next_type = 268
 							H.next_string = buffer.readstring(buff, sectionStart, ptr - sectionStart)
 							ptr =ptr+ 1
 							sectionDone = true
 							break
-						elseif c == 13 or c == 10 then -- \r / \n
-							H.next_type = 286 -- BrokenString
+						elseif c == 13 or c == 10 then
+							H.next_type = 286
 							sectionDone = true
 							break
-						elseif c == 92 then -- \
-							-- Allow \u{...} without treating '{' as interpolation start.
+						elseif c == 92 then
+
 							if
 								ptr + 2 < sourceSize
 								and buffer.readu8(buff, ptr + 1) == 117
@@ -1208,18 +1204,18 @@ H.lex = function (skip_comments)
 							then
 								ptr =ptr+ 3
 							else
-								ptr =ptr+ 1 -- consume '\'
+								ptr =ptr+ 1
 
 								if ptr < sourceSize then
 									local esc = buffer.readu8(buff, ptr)
 
-									if esc == 13 then -- \r
+									if esc == 13 then
 										if ptr + 1 < sourceSize and buffer.readu8(buff, ptr + 1) == 10 then
 											cur_line =cur_line+ 1
 											ptr =ptr+ 1
 											cur_line_offset = ptr + 1
 										end
-									elseif esc == 122 then -- z
+									elseif esc == 122 then
 										ptr =ptr+ 1
 										while ptr < sourceSize do
 											local wc = buffer.readu8(buff, ptr)
@@ -1249,7 +1245,7 @@ H.lex = function (skip_comments)
 
 											ptr =ptr+ 1
 										end
-									elseif esc == 10 then -- \n
+									elseif esc == 10 then
 										cur_line =cur_line+ 1
 										cur_line_offset = ptr + 1
 										ptr =ptr+ 1
@@ -1258,19 +1254,19 @@ H.lex = function (skip_comments)
 									end
 								end
 							end
-						elseif c == 123 then -- {
+						elseif c == 123 then
 							H.braceStackSize =H.braceStackSize+ 1
 							H.braceStack[H.braceStackSize] = H.BraceType.InterpolatedString
 
 							if ptr + 1 < sourceSize and buffer.readu8(buff, ptr + 1) == 123 then
-								H.next_type = 289 -- BrokenInterpDoubleBrace
+								H.next_type = 289
 								H.next_string = buffer.readstring(buff, sectionStart, ptr - sectionStart)
 								ptr =ptr+ 2
 								sectionDone = true
 								break
 							end
 
-							H.next_type = 267 -- InterpStringMid
+							H.next_type = 267
 							H.next_string = buffer.readstring(buff, sectionStart, ptr - sectionStart)
 							ptr =ptr+ 1
 							sectionDone = true
@@ -1281,46 +1277,46 @@ H.lex = function (skip_comments)
 					end
 
 					if not sectionDone then
-						H.next_type = 286 -- BrokenString
+						H.next_type = 286
 					end
 				end
 			end
 		else
 			H.next_type = ch
 		end
-	elseif ch == 96 then -- `
+	elseif ch == 96 then
 		local sectionStart = ptr
 		local sectionDone = false
 
 		while ptr < sourceSize do
 			local c = buffer.readu8(buff, ptr)
 
-			if c == 96 then -- `
-				H.next_type = 269 -- InterpStringSimple
+			if c == 96 then
+				H.next_type = 269
 				H.next_string = buffer.readstring(buff, sectionStart, ptr - sectionStart)
 				ptr =ptr+ 1
 				sectionDone = true
 				break
-			elseif c == 13 or c == 10 then -- \r / \n
-				H.next_type = 286 -- BrokenString
+			elseif c == 13 or c == 10 then
+				H.next_type = 286
 				sectionDone = true
 				break
-			elseif c == 92 then -- \
-				-- Allow \u{...} without treating '{' as interpolation start.
+			elseif c == 92 then
+
 				if ptr + 2 < sourceSize and buffer.readu8(buff, ptr + 1) == 117 and buffer.readu8(buff, ptr + 2) == 123 then
 					ptr =ptr+ 3
 				else
-					ptr =ptr+ 1 -- consume '\'
+					ptr =ptr+ 1
 					if ptr < sourceSize then
 						local esc = buffer.readu8(buff, ptr)
 
-						if esc == 13 then -- \r
+						if esc == 13 then
 							if ptr + 1 < sourceSize and buffer.readu8(buff, ptr + 1) == 10 then
 								cur_line =cur_line+ 1
 								ptr =ptr+ 1
 								cur_line_offset = ptr + 1
 							end
-						elseif esc == 122 then -- z
+						elseif esc == 122 then
 							ptr =ptr+ 1
 							while ptr < sourceSize do
 								local wc = buffer.readu8(buff, ptr)
@@ -1339,7 +1335,7 @@ H.lex = function (skip_comments)
 
 								ptr =ptr+ 1
 							end
-						elseif esc == 10 then -- \n
+						elseif esc == 10 then
 							cur_line =cur_line+ 1
 							cur_line_offset = ptr + 1
 							ptr =ptr+ 1
@@ -1348,19 +1344,19 @@ H.lex = function (skip_comments)
 						end
 					end
 				end
-			elseif c == 123 then -- {
+			elseif c == 123 then
 				H.braceStackSize =H.braceStackSize+ 1
 				H.braceStack[H.braceStackSize] = H.BraceType.InterpolatedString
 
 				if ptr + 1 < sourceSize and buffer.readu8(buff, ptr + 1) == 123 then
-					H.next_type = 289 -- BrokenInterpDoubleBrace
+					H.next_type = 289
 					H.next_string = buffer.readstring(buff, sectionStart, ptr - sectionStart)
 					ptr =ptr+ 2
 					sectionDone = true
 					break
 				end
 
-				H.next_type = 266 -- InterpStringBegin
+				H.next_type = 266
 				H.next_string = buffer.readstring(buff, sectionStart, ptr - sectionStart)
 				ptr =ptr+ 1
 				sectionDone = true
@@ -1371,9 +1367,9 @@ H.lex = function (skip_comments)
 		end
 
 		if not sectionDone then
-			H.next_type = 286 -- BrokenString
+			H.next_type = 286
 		end
-	elseif ch == 91 then -- [
+	elseif ch == 91 then
 		local count = 0
 		while ptr < sourceSize and buffer.readu8(buff, ptr) == 61 do
 			ptr =ptr+ 1
@@ -1382,7 +1378,7 @@ H.lex = function (skip_comments)
 
 		if ptr < sourceSize and buffer.readu8(buff, ptr) == 91 then
 			ptr =ptr+ 1
-			-- Long String
+
 			local ls_start = ptr
 			local found = false
 
@@ -1397,7 +1393,7 @@ H.lex = function (skip_comments)
 					end
 
 					if cc == count and c2 < sourceSize and buffer.readu8(buff, c2) == 93 then
-						H.next_type = 278 -- RawString
+						H.next_type = 278
 						H.next_string = buffer.readstring(buff, ls_start, ptr - ls_start)
 						ptr = c2 + 1
 						H.next_aux = count
@@ -1411,19 +1407,19 @@ H.lex = function (skip_comments)
 				ptr =ptr+ 1
 			end
 			if not found then
-				H.next_type = 286 -- BrokenString
+				H.next_type = 286
 			end
 		elseif count == 0 then
-			H.next_type = 91 -- [
+			H.next_type = 91
 		else
-			H.next_type = 286 -- BrokenString
+			H.next_type = 286
 		end
-	elseif ch == 64 then -- @
+	elseif ch == 64 then
 		if ptr < sourceSize and buffer.readu8(buff, ptr) == 91 then
 			ptr =ptr+ 1
-			H.next_type = 285 -- AttributeOpen
+			H.next_type = 285
 		else
-			H.next_type = 284 -- Attribute
+			H.next_type = 284
 			if ptr < sourceSize then
 				local first = buffer.readu8(buff, ptr)
 				if buffer.readu8(IdentifierCharactersLookup, first) == 1 then
@@ -1459,8 +1455,8 @@ H.lex = function (skip_comments)
 				seq_len = 3
 				cp = bit32.band(ch, 0x07)
 			else
-				H.next_type = 288 -- BrokenUnicode
-				seq_len = -1 -- signal fail
+				H.next_type = 288
+				seq_len = -1
 			end
 
 			if seq_len ~= -1 then
@@ -1482,10 +1478,10 @@ H.lex = function (skip_comments)
 				end
 
 				if ok then
-					H.next_type = 288 -- BrokenUnicode
+					H.next_type = 288
 					H.next_codepoint = cp
 				else
-					H.next_type = 288 -- BrokenUnicode
+					H.next_type = 288
 				end
 			end
 		else
@@ -1493,7 +1489,6 @@ H.lex = function (skip_comments)
 		end
 	end
 
-	-- Sync State
 	H.offset = ptr
 	H.line = cur_line
 	H.lineOffset = cur_line_offset
@@ -1501,12 +1496,11 @@ H.lex = function (skip_comments)
 	H.next_end_col = ptr - cur_line_offset
 end
 
--- // Parser Interface
 H.fillNext = function ()
 	while true do
-local __DARKLUA_CONTINUE_38=false repeat		H.lex(not H.captureComments) -- writes to next_*
+local __DARKLUA_CONTINUE_38=false repeat		H.lex(not H.captureComments)
 
-		if H.next_type == 282 or H.next_type == 283 or H.next_type == 287 then -- Comment / BlockComment / BrokenComment
+		if H.next_type == 282 or H.next_type == 283 or H.next_type == 287 then
 			if H.captureComments then
 				if H.commentLocations == H.EmptyArray then
 					H.commentLocations = {}
@@ -1520,7 +1514,7 @@ local __DARKLUA_CONTINUE_38=false repeat		H.lex(not H.captureComments) -- writes
 				})
 			end
 
-			if H.next_type == 282 and H.next_string and string.byte(H.next_string , 1) == 33 then -- Comment and '!'
+			if H.next_type == 282 and H.next_string and string.byte(H.next_string , 1) == 33 then
 				if H.hotcomments == H.EmptyArray then
 					H.hotcomments = {}
 				end
@@ -1549,7 +1543,7 @@ local ending = #text
 )
 			end
 
-			if H.next_type == 287 then return end -- BrokenComment
+			if H.next_type == 287 then return end
 __DARKLUA_CONTINUE_38=true			break
 		end
 
@@ -1558,13 +1552,12 @@ until true if not __DARKLUA_CONTINUE_38 then break end	end
 end
 
 H.nextLexeme = function ()
-	-- Save previous current to prev
+
 	H.prev_start_line = H.token_start_line
 	H.prev_start_col = H.token_start_col
 	H.prev_end_line = H.token_end_line
 	H.prev_end_col = H.token_end_col
 
-	-- Move NEXT to CURRENT
 	H.token_type = H.next_type
 	H.token_start_line = H.next_start_line
 	H.token_start_col = H.next_start_col
@@ -1574,11 +1567,8 @@ H.nextLexeme = function ()
 	H.token_aux = H.next_aux
 	H.token_codepoint = H.next_codepoint
 
-	-- Refill NEXT
 	H.fillNext()
 end
-
--- // Parser Commons
 
 H.snapshot = function ()	
 return {
@@ -1593,8 +1583,6 @@ return {
 		end_ = vector.create(H.prev_end_line, H.prev_end_col),
 	}
 end
-
--- // Error reports
 
 H.positionsEqual = function (a, b)	
 return a.x == b.x and a.y == b.y
@@ -1755,8 +1743,6 @@ if H.token_type ~= type_ then
 	return true
 end
 
--- // Ast reports
-
 H.reportStatError = function (
 	location,
 	exprs,
@@ -1834,8 +1820,6 @@ H.reportNameError = function (context)
 	end
 end
 
--- // Locals Helpers
-
 H.restoreLocals = function (offset)
 	for i = #H.localStack, offset + 1, -1 do
 		local l = H.localStack[i] 		
@@ -1900,8 +1884,6 @@ if expr.kind == "ExprLocal" and expr["local"].isConst == true then
 	return H.reportExprError(expr.location, { expr }, "Assigned expression must be a variable or a field")
 end
 
--- // The core of the code
-
  H.typeFunctionDepth = 0
 
 
@@ -1944,12 +1926,6 @@ local name, startLine, startColumn, endLine, endColumn = H.parseNameScalars(cont
 return result
 end
 
--- Type ::=
---      nil |
---      Name[`.' Name] [`<' namelist `>'] |
---      `{' [PropList] `}' |
---      `(' [TypeList] `)' `->` ReturnType
---      `typeof` Type
 H.parseTypeSuffixImpl = function (type_, beginLine, beginColumn)	
 local parts = {} 	
 if type_ then
@@ -2084,7 +2060,6 @@ end
 
 H.parseTypeImpl = function (inDeclarationContext)	
 local oldRec = H.recursionCounter
-	-- recursion counter is incremented in parseSimpleType and/or parseTypeSuffix
 
 	local beginLine, beginColumn = H.token_start_line, H.token_start_col
 
@@ -2128,14 +2103,13 @@ local name, startLine, startColumn, endLine, endColumn = H.parseNameScalars("var
 	} 
 end
 
-H.parseVariadicArgumentTypePackImpl = function ()	-- Generic: a...
+H.parseVariadicArgumentTypePackImpl = function ()
 	
 if H.token_type == 281 and H.next_type == 262 then
 		local name, startLine, startColumn = H.parseNameScalars("generic name")
 		local endStartLine, endStartColumn = H.token_start_line, H.token_start_col
 		local endLine, endColumn = H.token_end_line, H.token_end_col
 
-		-- This will not fail because of the lookahead guard.
 		H.expectAndConsume(262, "generic type pack annotation")
 
 		local node = {
@@ -2155,7 +2129,7 @@ if H.storeCstData then
 		end
 
 		return node
-	else -- Variadic: T
+	else
 		local varTy = H.parseTypeImpl(false)
 
 		return {
@@ -2166,7 +2140,6 @@ if H.storeCstData then
 	end
 end
 
--- bindinglist ::= (binding | `...') [`,' bindinglist]
 H.parseBindingList = function (
 	result,
 	allowDot3,
@@ -2265,8 +2238,6 @@ local body= {}
 	} 
 end
 
--- chunk ::= {stat [`;']} [laststat [`;']]
--- block ::= chunk
 H.parseBlock = function ()	
 local localsBegin = #H.localStack
 	local result = H.parseBlockNoScope()
@@ -2274,7 +2245,6 @@ local localsBegin = #H.localStack
 	return result
 end
 
--- if exp then block {elseif exp then block} [else block] end
 H.parseIfImpl = function ()	
 local startLine, startColumn = H.token_start_line, H.token_start_col
 
@@ -2358,7 +2328,6 @@ local startLine, startColumn = H.token_start_line, H.token_start_col
 	} 
 end
 
--- while exp do block end
 H.parseWhileImpl = function ()	
 local startLine, startColumn = H.token_start_line, H.token_start_col
 	H.nextLexeme()
@@ -2399,14 +2368,13 @@ end
 	} 
 end
 
--- repeat block until exp
 H.parseRepeatImpl = function ()	
 local startLine, startColumn = H.token_start_line, H.token_start_col
 
 	local Repeat_type = H.token_type
 	local Repeat_start_line, Repeat_start_col = H.token_start_line, H.token_start_col
 
-	H.nextLexeme() -- repeat
+	H.nextLexeme()
 
 	local localsBegin = #H.localStack
 do local __DARKLUA_VAR=
@@ -2448,14 +2416,13 @@ if H.storeCstData then
 	return node
 end
 
--- do block end
 H.parseDoImpl = function ()	
 local startLine, startColumn = H.token_start_line, H.token_start_col
 
 	local Do_type = H.token_type
 	local Do_start_line, Do_start_col = H.token_start_line, H.token_start_col
 
-	H.nextLexeme() -- do
+	H.nextLexeme()
 
 	local statsStartLine, statsStartColumn = H.token_start_line, H.token_start_col
 
@@ -2483,10 +2450,9 @@ end
 	return body
 end
 
--- break
 H.parseBreakImpl = function ()	
 local start = H.snapshot()
-	H.nextLexeme() -- break
+	H.nextLexeme()
 
 	if H.functionStack[#H.functionStack].loopDepth == 0 then
 		return H.reportStatError(
@@ -2503,7 +2469,6 @@ local start = H.snapshot()
 	}
 end
 
--- continue
 H.parseContinueImpl = function (start)	
 if H.functionStack[#H.functionStack].loopDepth == 0 then
 		return H.reportStatError(
@@ -2513,8 +2478,6 @@ if H.functionStack[#H.functionStack].loopDepth == 0 then
 			"continue statement must be inside a loop"
 		)
 	end
-
-	-- note: the token is already parsed for us!
 
 	return {
 		kind = "StatContinue",
@@ -2530,7 +2493,6 @@ local positions= {}
 	return positions
 end
 
--- explist ::= {exp `,'} exp
 H.parseExprListImpl = function (result, commaPositions)
 	table.insert(result, H.ParserFunctions.parseExpr())
 
@@ -2550,11 +2512,9 @@ H.parseExprListImpl = function (result, commaPositions)
 	end
 end
 
--- for binding `=' exp `,' exp [`,' exp] do block end |
--- for bindinglist in explist do block end |
 H.parseForImpl = function ()	
 local startLine, startColumn = H.token_start_line, H.token_start_col
-	H.nextLexeme() -- for
+	H.nextLexeme()
 
 	local varname = H.parseBinding()
 
@@ -2708,7 +2668,6 @@ if varsCommaPosition and valuesCommaPositions then
 	end
 end
 
--- NAME
 H.parseNameExprImpl = function (context)	
 local name, startLine, startColumn, endLine, endColumn = H.parseNameScalars(context)
 
@@ -2747,12 +2706,11 @@ local name, startLine, startColumn, endLine, endColumn = H.parseNameScalars(cont
 	}
 end
 
--- funcname ::= Name {`.' Name} [`:' Name]
 H.parseFunctionName = function ()	
 local hasSelf = false
 	local debugname = (H.token_type == 281 and{H.token_string }or{nil
 })[1]
-	-- parse funcname into a chain of indexing operators
+
 	local expr = H.parseNameExprImpl("function name")
 
 	local oldRecursionCount = H.recursionCounter
@@ -2768,7 +2726,6 @@ local hasSelf = false
 			end_ = vector.create(endLine, endColumn),
 		}
 
-		-- while we could concatenate the name chain, for now let's just write the short name
 		debugname = name
 
 		expr = {
@@ -2784,13 +2741,11 @@ local hasSelf = false
 			op = 46,
 		}
 
-		-- note: while the parser isn't recursive here, we're generating recursive structures of unbounded depth
 		H.incrementRecursionCounter("function name")
 	end
 
 	H.recursionCounter = oldRecursionCount
 
-	-- finish with :
 	if H.token_type == 58 then
 		local opPosition = vector.create(H.token_start_line, H.token_start_col)
 		H.nextLexeme()
@@ -2802,7 +2757,6 @@ local hasSelf = false
 			end_ = vector.create(endLine, endColumn),
 		}
 
-		-- while we could concatenate the name chain, for now let's just write the short name
 		debugname = name
 
 		expr = {
@@ -2838,7 +2792,7 @@ H.shouldParseTypePack = function ()
 	return false
 end
 
-H.parseTypePackImpl = function ()	-- Variadic: ...T
+H.parseTypePackImpl = function ()
 	
 if H.token_type == 262 then
 		local startLine, startColumn = H.token_start_line, H.token_start_col
@@ -2853,13 +2807,11 @@ if H.token_type == 262 then
 			variadicType = varTy,
 		}
 
-		-- Generic: a...
 	elseif H.token_type == 281 and H.next_type == 262 then
 		local name, startLine, startColumn = H.parseNameScalars("generic name")
 		local endStartLine, endStartColumn = H.token_start_line, H.token_start_col
 		local endLine, endColumn = H.token_end_line, H.token_end_col
 
-		-- This will not fail because of the lookahead guard.
 		H.expectAndConsume(262, "generic type pack annotation")
 
 		local node = {
@@ -2881,13 +2833,11 @@ if H.token_type == 262 then
 		return node 	
 end
 
-	-- TODO: shouldParseTypePack can be removed and parseTypePack can be called unconditionally instead
 	error("parseTypePack can't be called if shouldParseTypePack() returned false")
 end
 
 H.parseSimpleTypeOrPackImpl = function ()	
 local oldRec = H.recursionCounter
-	-- recursion counter is incremented in parseSimpleType
 
 	local beginLine, beginColumn = H.token_start_line, H.token_start_col
 
@@ -3088,8 +3038,6 @@ if H.token_type == 58 or H.token_type == 263 then
 		local res = H.ParserFunctions.parseReturnType()
 		H.recursionCounter = oldRecursion
 
-		-- At this point, if we find a , character, it indicates that there are multiple return types
-		-- in this type annotation, but the list wasn't wrapped in parentheses.
 		if H.token_type == 44 then
 			H.report(
 				H.snapshot(),
@@ -3127,8 +3075,6 @@ end
 	return selfLocal, vars
 end
 
--- funcbody ::= `(' [parlist] `)' [`:' ReturnType] block end
--- parlist ::= bindinglist [`,' `...'] | `...'
 H.parseFunctionBodyImpl = function (
 	hasself,
 	matchFunctionType,
@@ -3186,16 +3132,6 @@ end
 	local Paren_col = H.token_start_col
 
 	H.expectAndConsume(40, "function")
-
-	-- NOTE: This was added in conjunction with passing `searchForMissing` to
-	-- `expectMatchAndConsume` inside `parseTableType` so that the behavior of
-	-- parsing code like below (note the missing `}`):
-
-	-- function (t: { a: number  ) end
-
-	-- ... will still parse as (roughly):
-
-	-- function (t: { a: number }) end
 
 	H.matchRecovery[41]=H.matchRecovery[41]+ 1
 
@@ -3293,7 +3229,6 @@ if H.storeCstData and cstNode then
 	return node, funLocal
 end
 
--- function funcname funcbody
 H.parseFunctionStatImpl = function (
 	attributes,
 	attributeStartLocation,
@@ -3365,7 +3300,7 @@ H.validateAttribute = function (
 	attributes,
 	args
 )
-	-- check if the attribute name is valid
+
 	local entry = H.kAttributeEntries[attributeName]
 	local type_= nil
 	local argsValidator= nil
@@ -3384,7 +3319,7 @@ H.validateAttribute = function (
 	end
 
 	if type_ then
-		-- check that attribute is not duplicated
+
 		for _, attr in ipairs(attributes) do
 			if attr.type == type_ then
 				H.report(loc, "Cannot duplicate attribute '@%s'", attributeName)
@@ -3417,10 +3352,6 @@ H.cstSeparatorPosition = function (separator)
 return (separator == nil and{(vector.create(0, 0) )}or{(vector.create(H.token_start_line, H.token_start_col)
 )})[1]end
 
--- tableconstructor ::= `{' [fieldlist] `}'
--- fieldlist ::= field {fieldsep field} [fieldsep]
--- field ::= `[' exp `]' `=' exp | Name `=' exp | exp
--- fieldsep ::= `,' | `;'
 H.parseTableConstructorImpl = function ()	
 local items = {} 	
 local cstItems= H.storeCstData and{} or nil
@@ -3736,7 +3667,6 @@ if H.token_type == 40 then
 	end
 end
 
--- attribute ::= '@' NAME
 H.parseAttribute = function (attributes)	
 if H.token_type == 284 then
 		local loc = H.snapshot()
@@ -3895,7 +3825,6 @@ or nil
 	end
 end
 
--- attributes ::= {attribute}
 H.parseAttributes = function ()	
 local attributes= {}
 	local startLocation= nil
@@ -3933,7 +3862,7 @@ H.parseLocalImpl = function (
 	isConst
 )	
 if not isConst then
-		H.nextLexeme() -- local
+		H.nextLexeme()
 	end
 
 	if H.token_type == 299 then
@@ -3943,8 +3872,6 @@ if not isConst then
 		local matchFunctionEndLine, matchFunctionEndColumn = H.token_end_line, H.token_end_col
 		H.nextLexeme()
 
-		-- matchFunction is only used for diagnostics; to make it suitable for detecting missed indentation between
-		-- `local function` and `end`, we patch the token to begin at the column where `local` starts
 		if matchFunctionLine == start.begin.x then
 			matchFunctionColumn = start.begin.y
 		end
@@ -4339,7 +4266,6 @@ if #H.functionStack ~= 1 or H.recursionCounter ~= 1 then
 	return H.reportStatError(start, {}, {}, "'export' must be followed by an identifier or 'function'")
 end
 
--- prefixexp -> NAME | '(' expr ')'
 H.parsePrefixExprImpl = function ()	
 if H.token_type == 40 then
 		local start = vector.create(H.token_start_line, H.token_start_col)
@@ -4438,15 +4364,6 @@ if H.token_type == 60 then
 					type_, typePack = H.ParserFunctions.parseSimpleType(true, false)
 				end
 
-				--/ Consider the following type:
-
-				--  X<(T)>
-
-				-- Is this a type pack or a parenthesized type? The
-				-- assumption will be a type pack, as that's what allows one
-				-- to express either a singular type pack or a potential
-				-- complex type.
-
 				if typePack then
 					if
 						typePack.kind == "TypePackExplicit"
@@ -4454,11 +4371,6 @@ if H.token_type == 60 then
 						and not typePack.tailType
 						and (H.token_type == 124 or H.token_type == 63 or H.token_type == 38)
 					then
-						-- If we parsed an explicit type pack with a single
-						-- type in it (something of the form `(T)`), and
-						-- the next lexeme is one that follows a type
-						-- (&, |, ?), then assume that this was actually a
-						-- parenthesized type.
 
 						local parenTy = typePack.types[1]
 
@@ -4485,7 +4397,7 @@ if H.storeCstData then
 							{ type = H.parseTypeSuffixImpl(node, beginParenLine, beginParenColumn), typePack = nil }
 						)
 					else
-						-- Otherwise, it's a type pack.
+
 						table.insert(params, { type = nil, typePack = typePack })
 					end
 				else
@@ -4516,8 +4428,6 @@ if H.storeCstData then
 	end
 	return params
 end
-
--- // Explicit Type Instantiation
 
 H.parseTypeInstantiationExpr = function ()	
 local begin_type, begin_line, begin_col = H.token_type, H.token_start_line, H.token_start_col
@@ -4581,7 +4491,6 @@ if selfCall and H.token_start_line ~= func.location.end_.x then
 	end
 end
 
--- args ::=  `(' [explist] `)' | tableconstructor | String
 H.parseFunctionArgsImpl = function (func, selfCall)	
 if H.token_type == 40 then
 		local argStart = vector.create(H.token_end_line, H.token_end_col)
@@ -4713,7 +4622,6 @@ if cstInstantiation then
 	return expr
 end
 
--- primaryexp -> prefixexp { `.' NAME | `[' exp `]' | `:' NAME funcargs | funcargs }
 H.parsePrimaryExprImpl = function (asStatement)	
 local expr= H.parsePrefixExprImpl()
 
@@ -4805,7 +4713,7 @@ local typeArgs= {}
 				(callExpr.cstNode ).explicitTypes = cstInstantiation
 			end
 		elseif H.token_type == 40 then
-			-- This error is handled inside 'parseFunctionArgs' as well, but for better error recovery we need to break out the current loop here
+
 			if not asStatement and expr.location.end_.x ~= H.token_start_line then
 				H.reportAmbiguousCallError()
 				break
@@ -4819,7 +4727,6 @@ local typeArgs= {}
 			break
 		end
 
-		-- note: while the parser isn't recursive here, we're generating recursive structures of unbounded depth
 		H.incrementRecursionCounter("expression")
 	end
 
@@ -4937,7 +4844,6 @@ return {
 	} 
 end
 
--- TableIndexer ::= `[' Type `]' `:' Type
 H.parseTableIndexerImpl = function (
 	access,
 	accessLoc,
@@ -5266,10 +5172,6 @@ end
 	return H.reportStatError(start, {}, {}, "declare must be followed by an identifier, 'function', or 'extern type'")
 end
 
--- attributes local function Name funcbody
--- attributes function funcname funcbody
--- attributes `declare function' Name`(' [parlist] `)' [`:` Type]
--- declare Name '{' Name ':' attributes `(' [parlist] `)' [`:` Type] '}'
 H.parseAttributeStatImpl = function ()	
 local attributes, attributeStartLocation, cstAttrLists = H.parseAttributes()
 	local type_ = H.token_type
@@ -5318,7 +5220,6 @@ local attributes, attributeStartLocation, cstAttrLists = H.parseAttributes()
 	)
 end
 
--- return [explist]
 H.parseReturnImpl = function ()	
 local startLine, startColumn = H.token_start_line, H.token_start_col
 	local startEndLine, startEndColumn = H.token_end_line, H.token_end_col
@@ -5367,7 +5268,6 @@ if commaPositions then
 	return node
 end
 
--- type function Name `(' arglist `)' `=' funcbody `end'
 H.parseTypeFunctionImpl = function (
 	start,
 	exported,
@@ -5381,7 +5281,6 @@ local matchFunctionType = H.token_type
 
 	local errorsAtStart = #H.parseErrors
 
-	-- parse the name of the type function
 	local fnNameOpt = H.parseNameOptImpl("type function name")
 	local fnName = fnNameOpt 
 	
@@ -5441,26 +5340,20 @@ if H.storeCstData then
 	return node
 end
 
--- type Name [`<' varlist `>'] `=' Type
 H.parseTypeAliasImpl = function (
 	start,
 	exported,
 	typeKeywordLine,
 	typeKeywordColumn
-)	-- parsing a type function
+)
 	
 if H.token_type == 299 then
 		return H.parseTypeFunctionImpl(start, exported, typeKeywordLine, typeKeywordColumn)
 	end
 
-	-- parsing a type alias
-
-	-- note: `type` token is already parsed for us, so we just need to parse the rest
-
 	local nameOpt = H.parseNameOptImpl("type name")
 	local name = nameOpt 
-	-- Use error name if the name is missing
-	
+
 if not name then
 		name = {
 			name = { value = "%error-id%" },
@@ -5509,7 +5402,6 @@ if genericsOpenPos and genericsCommaPos and genericsClosePos and equalsPosition 
 	return node
 end
 
--- varlist `=' explist
 H.parseAssignmentImpl = function (initial)	
 if not H.isExprLValue(initial) then
 		initial = (H.LuauExportValueSyntax
@@ -5565,7 +5457,6 @@ if varsCommaPositions and valuesCommaPositions then
 	return node
 end
 
--- var [`+=' | `-=' | `*=' | `/=' | `%=' | `^=' | `..='] exp
 H.parseCompoundAssignmentImpl = function (initial, op)	
 if not H.isExprLValue(initial) then
 		initial = (H.LuauExportValueSyntax
@@ -5596,7 +5487,6 @@ if H.storeCstData then
 	return node
 end
 
--- TypeList ::= Type [`,' TypeList] | ...Type
 H.parseTypeListImpl = function (
 	result,
 	resultNames,
@@ -5609,7 +5499,7 @@ while true do
 		end
 
 		if H.token_type == 281 and H.next_type == 58 then
-			-- Fill in previous argument names with empty slots
+
 			while #resultNames < #result do
 				table.insert(resultNames, false)
 				if nameColonPositions then
@@ -5631,7 +5521,7 @@ while true do
 
 			H.expectAndConsume(58)
 		elseif #resultNames > 0 then
-			-- If we have a type with named arguments, provide elements for all types
+
 			table.insert(resultNames, false)
 			if nameColonPositions then
 				table.insert(nameColonPositions, false)
@@ -5658,10 +5548,6 @@ while true do
 	return nil
 end
 
--- TableProp ::= Name `:' Type
--- TablePropOrIndexer ::= TableProp | TableIndexer
--- PropList ::= TablePropOrIndexer {fieldsep TablePropOrIndexer} [fieldsep]
--- TableType ::= `{' PropList `}'
 H.parseTableTypeImpl = function (inDeclarationContext)	
 H.incrementRecursionCounter("type annotation")
 
@@ -5798,7 +5684,6 @@ H.incrementRecursionCounter("type annotation")
 			local type_ = H.parseTypeImpl()
 			isArray = true
 
-			-- array-like table type: {T} desugars into {[number]: T}
 			local index = {
 				kind = "TypeReference",
 				location = type_.location,
@@ -5914,7 +5799,6 @@ H.incrementRecursionCounter("type annotation")
 
 		H.nextLexeme()
 
-		-- Users occasionally write '()' as the 'unit' type when they actually want to use 'nil', here we'll try to give a more specific error
 	elseif H.token_type ~= 263 and #generics == 0 and #genericPacks == 0 and #params == 0 then
 		H.report({
 			begin = beginLocation.begin,
@@ -5953,8 +5837,6 @@ else
 	}
 end
 
--- ReturnType ::= Type | `(' TypeList `)'
--- FunctionType ::= [`<' varlist `>'] `(' [TypeList] `)' `->` ReturnType
 H.parseFunctionTypeImpl = function (
 allowPack, attributes
 )	
@@ -6015,7 +5897,6 @@ local argCommaPos= H.storeCstData and{} or nil
 
 	local returnTypeIntroducer = (H.token_type == 263 or H.token_type == 58)
 
-	-- ot a function at all. Just a parenthesized type. Or maybe a type pack with a single element
 	if #params == 1 and not varargAnnotation and not forceFunctionType and not returnTypeIntroducer then
 		if allowPack then
 			local node = {
@@ -6115,7 +5996,7 @@ if argCommaPos and openArgsPosition and closeArgsPosition then
 	return node, nil
 end
 
-H.checkUnaryConfusables = function ()	-- early-out: need to check if this is a possible confusable quickly
+H.checkUnaryConfusables = function ()
 	
 if H.token_type ~= 33 then
 		return nil
@@ -6123,18 +6004,16 @@ if H.token_type ~= 33 then
 
 	H.report(H.snapshot(), "Unexpected '!'; did you mean 'not'?")
 
-	return 0 -- UnaryOp.Not
+	return 0
 end
 
 H.checkBinaryConfusables = function (limit)	
 local currentType = H.token_type
 
-	-- arly-out: need to check if this is a possible confusable quickly
 	if currentType ~= 38 and currentType ~= 124 and currentType ~= 33 then
 		return nil
 	end
 
-	-- slow path: possible confusable
 	local startLine, startColumn = H.token_start_line, H.token_start_col
 	local endLine, endColumn = H.token_end_line, H.token_end_col
 
@@ -6186,6 +6065,14 @@ local currentType = H.token_type
 	end
 
 	return nil
+end
+
+H.lookupBinaryOperator = function ()
+	local t = H.token_type
+	if not H.bitwise and (t == 38 or t == 124 or t == 126 or t == 290 or t == 312) then
+		return nil
+	end
+	return H.BinaryOpLookup[t]
 end
 
 H.digitValue = function (ch)	
@@ -6281,7 +6168,6 @@ local start = H.snapshot()
 		sourceData = data
 	end
 
-	-- Remove internal '_'
 	local cleanData = string.gsub(data, "_", "")
 
 	if H.LuauIntegerType2 and string.sub(cleanData, -1) == "i" then
@@ -6326,12 +6212,10 @@ if H.storeCstData then
 	local value = 0
 	local parseResult= H.ParseResultOk
 
-	-- Hexadecimal check (0x...)
 	if string.find(cleanData, "^0[xX]") then
 		local content = string.sub(cleanData, 3)
 		local significant = string.match(content, "^0*(.+)") or "0"
 
-		-- 16 Hex digits * 4 bits = 64 bits. Anything more is overflow for uint64.
 		if #significant > 16 then
 			parseResult = H.ParseResultHexOverflow
 			value = 0
@@ -6388,7 +6272,6 @@ or 1
 		local content = string.sub(cleanData, 3)
 		local significant = string.match(content, "^0*(.+)") or "0"
 
-		-- 64 bits max for uint64
 		if #significant > 64 then
 			parseResult = H.ParseResultBinOverflow
 			value = 0
@@ -6403,7 +6286,7 @@ or 1
 					local precise = true
 
 					for i = bitLength, bitLength - requiredTrailingZeros + 1, -1 do
-						if string.byte(significant, i) ~= 48 then -- '0'
+						if string.byte(significant, i) ~= 48 then
 							precise = false
 							break
 						end
@@ -6602,7 +6485,7 @@ H.parseIfElseExprImpl = function ()
 local hasElse = false
 	local startLine, startColumn = H.token_start_line, H.token_start_col
 
-	H.nextLexeme() -- skip if / elseif
+	H.nextLexeme()
 
 	local condition = H.ParserFunctions.parseExpr()
 
@@ -6657,7 +6540,6 @@ if H.storeCstData then
 	return node
 end
 
--- simpleexp -> NUMBER | STRING | NIL | true | boolean | ... | constructor | [attributes] FUNCTION body | primaryexp
 H.parseSimpleExprImpl = function ()	
 local attributes= nil
 	local attributeStartLocation= nil
@@ -6758,7 +6640,6 @@ local attributes= nil
 	end
 end
 
--- asexp -> simpleexp [`::' Type]
 H.parseAssertionExprImpl = function ()	
 local startLine, startColumn = H.token_start_line, H.token_start_col
 	local expr = H.parseSimpleExprImpl()
@@ -6790,21 +6671,6 @@ if H.storeCstData then
 	end
 end
 
--- stat ::=
--- varlist `=' explist |
--- functioncall |
--- do block end |
--- while exp do block end |
--- repeat block until exp |
--- if exp then block {elseif exp then block} [else block] end |
--- for binding `=' exp `,' exp [`,' exp] do block end |
--- for namelist in explist do block end |
--- function funcname funcbody |
--- attributes function funcname funcbody |
--- local function Name funcbody |
--- local attributes function Name funcbody |
--- local namelist [`=' explist]
--- laststat ::= return [explist] | break
 H.parseStat = function ()	
 local type_ = H.token_type
 
@@ -6914,7 +6780,6 @@ if expr.kind == "ExprGlobal" then
 	return H.reportStatError(expr.location, { expr }, {}, "Incomplete statement: expected assignment or a function call")
 end
 
--- ReturnType ::= Type | `(' TypeList `)'
 H.parseReturnTypeImpl = function ()	
 H.incrementRecursionCounter("type annotation")
 
@@ -6956,7 +6821,6 @@ if H.storeCstData then
 
 	local varargAnnotation= nil
 
-	-- possibly () -> ReturnType
 	if H.token_type ~= 41 then
 		varargAnnotation = H.parseTypeListImpl(result, resultNames, commaPositions, nameColonPositions)
 	end
@@ -6974,9 +6838,9 @@ if H.storeCstData then
 	H.matchRecovery[263]=H.matchRecovery[263]- 1
 
 	if H.token_type ~= 263 and #resultNames == 0 then
-		-- If it turns out that it's just '(A)', it's possible that there are unions/intersections to follow, so fold over it.
+
 		if #result == 1 then
-			-- TODO(CLI-140667): stop parsing type suffix when varargAnnotation != nullptr - this should be a parse error
+
 			local inner			
 if varargAnnotation == nil then
 				local typeGroup = {
@@ -7002,8 +6866,6 @@ if H.storeCstData then
 
 			local returnType = H.parseTypeSuffixImpl(inner, begin_line, begin_col)
 
-			-- If parseType parses nothing, then returnType->location.end only points at the last non-type-pack
-			-- type to successfully parse.  We need the span of the whole annotation.
 			local endPos = (#result == 1
 and{(vector.create(endLine, endColumn)
 )}or{returnType.location.end_
@@ -7091,8 +6953,6 @@ if H.storeCstData then
 	return node
 end
 
--- Type ::= nil | Name[`.' Name] [ `<' Type [`,' ...] `>' ] | `typeof' `(' expr `)' | `{' [PropList] `}'
---   | [`<' varlist `>'] `(' [TypeList] `)' `->` ReturnType
 H.parseSimpleTypeImpl = function (allowPack, inDeclarationContext)	
 H.incrementRecursionCounter("type annotation")
 
@@ -7343,22 +7203,23 @@ if H.storeCstData then
 	end
 end
 
--- subexpr -> (asexp | unop subexpr) { binop subexpr }
--- where `binop' is any binary operator with a priority higher than `limit'
 H.parseExprImpl = function (limit_val)	
 local limit= limit_val or 0
 	local oldRecursion = H.recursionCounter
 
-	-- this handles recursive calls to parseSubExpr/parseExpr
 	H.incrementRecursionCounter("expression")
 
 	local startLine, startColumn = H.token_start_line, H.token_start_col
 	local startPosition= nil
 	local expr= nil
 
-	local uop= H.UnaryOpLookup[H.token_type] -- Fix: Lookup based on token type
+	local uop= H.UnaryOpLookup[H.token_type]
 	if not uop then
-		uop = H.checkUnaryConfusables()
+		if H.bitwise and H.token_type == 126 then
+			uop = 3
+		else
+			uop = H.checkUnaryConfusables()
+		end
 	end
 
 	if uop then
@@ -7366,7 +7227,7 @@ local limit= limit_val or 0
 		startPosition = vector.create(startLine, startColumn)
 		H.nextLexeme()
 
-		local subexpr = H.ParserFunctions.parseExpr(8)
+		local subexpr = H.ParserFunctions.parseExpr(11)
 
 		expr = {
 			kind = "ExprUnary",
@@ -7388,10 +7249,8 @@ if H.storeCstData then
 		expr = H.parseAssertionExprImpl()
 	end
 
-	-- expand while operators have priorities higher than `limit'
-	local op= H.BinaryOpLookup[H.token_type] or H.checkBinaryConfusables(limit)
+	local op= H.checkBinaryConfusables(limit) or H.lookupBinaryOperator()
 
-	-- expand while operators have priorities higher than `limit'
 	while op and H.BinaryPriority[op][1] > limit do
 		local opLine, opColumn = H.token_start_line, H.token_start_col
 		if not startPosition then
@@ -7399,7 +7258,6 @@ if H.storeCstData then
 		end
 		H.nextLexeme()
 
-		-- read sub-expression with higher priority
 		local nextExpr = H.ParserFunctions.parseExpr(H.BinaryPriority[op][2])
 
 		expr = {
@@ -7420,9 +7278,8 @@ if H.storeCstData then
 			}
 		end
 
-		op = H.BinaryOpLookup[H.token_type] or H.checkBinaryConfusables(limit) -- Fix: Lookup based on token type
+		op = H.checkBinaryConfusables(limit) or H.lookupBinaryOperator()
 
-		-- note: while the parser isn't recursive here, we're generating recursive structures of unbounded depth
 		H.incrementRecursionCounter("expression")
 	end
 
@@ -7439,6 +7296,7 @@ H.parseChunk = function (sourceText, parseOptions)
 H.options = parseOptions
 	H.captureComments = parseOptions.captureComments == true
 	H.storeCstData = parseOptions.storeCstData == true
+	H.bitwise = parseOptions.bitwiseOperators == true
 
 	H.buff_data = buffer.fromstring(sourceText)
 	H.size = #sourceText
@@ -7488,7 +7346,7 @@ H.hotcommentHeader = true
 	H.suspect_type = 0
 	H.suspect_line = 0
 
-	H.matchRecovery = table.create(312, 0)
+	H.matchRecovery = table.create(320, 0)
 	H.matchRecovery[0] = 1
 
 	H.functionStack = {
@@ -7518,10 +7376,6 @@ H.hotcommentHeader = true
 	return result
 end
 
--- Standalone lexer: tokenizes `sourceText` by driving the parser's own lex(),
--- returning every token (including comments) with its decoded value, raw text
--- and 0-indexed line/column positions. This is the shared token layer that
--- obfuscation modules consume instead of hand-rolling string/comment scanners.
 H.LTokenName = function (t, data)
 	if t == 0 then
 		return "eof"
@@ -7586,6 +7440,7 @@ local success, result = pcall(H.parseChunk, source, parseOptions)
 		Not = 0,
 		Minus = 1,
 		Len = 2,
+		BitNot = 3,
 	},
 	
 	BinaryOp = H.BinaryOp,

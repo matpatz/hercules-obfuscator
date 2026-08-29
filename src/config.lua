@@ -5,6 +5,7 @@ local manifest = require("manifest")
 local config = {}
 
 config.target = "lua"  -- "lua", "luau", or "glua"
+config.lua_version = "5.4" -- Lua target parser preset (5.1 through 5.4)
 
 config.settings = {
     output_suffix = manifest.output.suffix,

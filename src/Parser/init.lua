@@ -1,34 +1,8 @@
--- Parser/init.lua
--- Facade for the Parser subsystem. It wires the transpiled Luau AST parser
--- (Parser/LuauParser) into the rest of the project and provides a module-shaped
--- API for the obfuscation pipeline. Because the parser body is transpiled from
--- Luau, it is loaded together with the Luau standard-library fallbacks first.
---
--- The parser emits Luau's official parser AST (nodes keyed by `kind`, e.g.
--- StatBlock, StatLocal, StatExpr, StatIf). The bundled Parser/LuauRenderer was
--- written against a different, incompatible schema (keyed by `type`), so it
--- cannot round-trip this parser's output; use `parse` on the AST and generate
--- code from it directly.
---
--- API:
---   Parser.parse(source, options)    -> true, result | false, errorMessage
---   Parser.render(ast, options)      -> string   (render an AST back to source)
---   Parser.process(code)             -> string   (parse, render, return)
---   Parser.LuauParser                -> raw transpiled parser module
---   Parser.AstRenderer               -> renderer for the .kind AST
---   Parser.Renderer                  -> bundled renderer (different schema)
-
 local Parser = {}
+local config = require("config")
 
--- Install buffer/vector/table.* Luau fallbacks before the parser loads.
 require("Parser/LuauPolyfills")
 
--- The transpiled parser resolves standard-library names as globals at runtime
--- (e.g. `tostring(...)`, `string.format(...)`, `math.floor(...)`). In-process
--- consumers may have rebound globals by the time parsing happens - most
--- notably, executing an already-obfuscated Virtual Machine payload replaces
--- `_G.tostring`. To make the parser immune, load its body under an environment
--- that pins the standard library to the values captured at Parser load time.
 local function resolve_module_path(name)
     local candidates = { name, name .. "/init" }
     for _, cand in ipairs(candidates) do
@@ -48,11 +22,11 @@ end
 local function load_with_env(filename, env)
     local chunk, err
     if _G.setfenv then
-        -- Lua 5.1 / LuaJIT: load bare, then rebind the environment.
+
         chunk, err = loadfile(filename)
         if chunk then setfenv(chunk, env) end
     else
-        -- Lua 5.2+: loadfile accepts the environment directly.
+
         chunk, err = loadfile(filename, "t", env)
     end
     return chunk, err
@@ -82,20 +56,58 @@ local function load_parser_module(module)
     return chunk()
 end
 
--- Pre-load the polyfilled standard-library fallbacks into a cache so parsing
--- never resolves `buffer`/`vector` through a possibly-tampered _G.
 require("Parser/LuauPolyfills")
 
 local LuauParser = load_parser_module("Parser/LuauParser/init")
 local AstRenderer = require("Parser/AstRenderer")
 
--- Parses `source` into an AST. Returns (true, result) on success or
--- (false, errorMessage) on a syntax error, never throwing.
+local PARSER_PRESETS = {
+    lua51 = { bitwiseOperators = false },
+    lua52 = { bitwiseOperators = false },
+    lua53 = { bitwiseOperators = true },
+    lua54 = { bitwiseOperators = true },
+    luau = { bitwiseOperators = false },
+    glua = { bitwiseOperators = false },
+}
+
+local function normalize_version(version)
+    if version == nil then return nil end
+    local value = tostring(version):lower():gsub("%s+", "")
+    local aliases = {
+        ["5.1"] = "lua51", ["lua5.1"] = "lua51", lua51 = "lua51",
+        ["5.2"] = "lua52", ["lua5.2"] = "lua52", lua52 = "lua52",
+        ["5.3"] = "lua53", ["lua5.3"] = "lua53", lua53 = "lua53",
+        ["5.4"] = "lua54", ["lua5.4"] = "lua54", lua54 = "lua54",
+        luau = "luau", glua = "glua",
+    }
+    return aliases[value]
+end
+
+local function resolve_parse_options(options)
+    local opts = {}
+    for key, value in pairs(options or {}) do opts[key] = value end
+    local version = normalize_version(opts.version)
+    if version then
+        opts.bitwiseOperators = PARSER_PRESETS[version].bitwiseOperators
+    elseif opts.bitwiseOperators == nil then
+        local target = config.target or "lua"
+        if target == "lua" then
+            local configured = config.lua_version
+            version = normalize_version(configured) or "lua54"
+        else
+            version = normalize_version(target) or target
+        end
+        local preset = PARSER_PRESETS[version]
+        opts.bitwiseOperators = preset and preset.bitwiseOperators or false
+    end
+    return opts
+end
+
 function Parser.parse(source, options)
     if type(source) ~= "string" then
         return false, ("Parser.parse expects a string, got %s"):format(type(source))
     end
-    local ok, result = LuauParser.parse(source, options or {})
+    local ok, result = LuauParser.parse(source, resolve_parse_options(options))
     if not ok then
         local firstError = (result and result.errors and result.errors[1])
         local message = firstError and firstError.message or "unknown parse error"
@@ -104,32 +116,22 @@ function Parser.parse(source, options)
     return true, result
 end
 
--- Render an already-parsed AST back into source text. `options` are forwarded
--- to the renderer (e.g. indent, lower_compound for Lua-target output).
 function Parser.render(ast, options)
     return AstRenderer.render(ast, options or {})
 end
 
--- Pipeline entry point: parses `code` into an AST and renders it back, acting
--- as a syntax gate that normalizes source text. Enable this module in the
--- pipeline only once consumers can tolerate a reformat; `Parser.parse` plus
--- `Parser.AstRenderer` expose the AST to individual obfuscation modules.
 function Parser.process(code)
     if type(code) ~= "string" then
         error("Parser.process expects a string", 2)
     end
-    if #code == 0 then
-        return code
-    end
-    local ok, result = Parser.parse(code)
-    if not ok then
-        error("Parser failed: " .. tostring(result), 2)
-    end
-    return Parser.render(result.root)
+
+    return code
 end
 
 Parser.LuauParser = LuauParser
 Parser.AstRenderer = AstRenderer
 Parser.Renderer = require("Parser/LuauRenderer")
+Parser.PARSER_PRESETS = PARSER_PRESETS
+Parser.resolve_parse_options = resolve_parse_options
 
 return Parser

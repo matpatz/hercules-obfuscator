@@ -1,4 +1,7 @@
 local StringToExpressions = {}
+local Parser = require("Parser")
+local Ast = require("Parser/Ast")
+local config = require("config")
 local math_methods = {
     addSub = function(char, base1, base2)
         local base = math.random(base1, base2)
@@ -35,6 +38,24 @@ local function obfuscateStringLiteral(str, base1, base2)
 end
 
 function StringToExpressions.process(script_content, base1, base2)
+    local root = config._ast
+    if not root then
+        local parsed_ok, parsed = Parser.parse(script_content)
+        if parsed_ok then root = parsed.root end
+    end
+    if root then
+        Ast.rewrite(root, function(node)
+            if node.kind ~= "ExprConstantString" or node.value == "" then return nil end
+            local expression
+            for i = 1, #node.value do
+                local char = Ast.call(Ast.index_name(Ast.global("string"), "char", false),
+                    { Ast.constant(node.value:byte(i)) })
+                expression = expression and Ast.binary(Ast.OPS.concat, expression, char) or char
+            end
+            return expression
+        end, { exclude = { Record = { key = true }, General = { key = true }, Map = { key = true } } })
+        return Ast.render(root)
+    end
     used_ascii = {}
 
     -- Scan script content and find strings properly (handling escapes)

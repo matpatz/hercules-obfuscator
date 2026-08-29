@@ -291,7 +291,6 @@ function fmtIf(s, depth)
 	return out .. "\n" .. indent(depth) .. "end"
 end
 
--- Minified renderer
 local pushExpr, pushExprWithParens, pushIdentifier, pushExprBase, pushExprList
 local pushNameList, pushFieldList, pushField, pushTableConstructor, pushFuncExpr
 local pushBody, pushStmt, pushIf
@@ -623,7 +622,6 @@ function pushIf(buf, state, s)
 	buf[#buf + 1] = "end"
 end
 
--- Minification passes
 local function combinedMinifyPass(ast)
 	local function walkAndMark(node)
 		if type(node) ~= "table" then return end

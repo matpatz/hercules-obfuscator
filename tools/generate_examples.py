@@ -11,9 +11,31 @@ import subprocess
 import sys
 import tempfile
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
+
+
+def parse_args(argv: list[str] | None = None) -> Any:
+    import argparse
+
+    parser = argparse.ArgumentParser(
+        description="Generate the Hercules obfuscation showcase site."
+    )
+    parser.add_argument(
+        "--targets",
+        default="lua,luau,glua",
+        help="Comma-separated targets to generate (default: all).",
+    )
+    parser.add_argument(
+        "--limit",
+        type=int,
+        default=0,
+        help="Cap the number of combos generated per target (0 = all). "
+        "Useful for smoke-testing the site; combos are iterated smallest-first.",
+    )
+    return parser.parse_args(argv)
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -40,7 +62,14 @@ def format_eta(seconds: float) -> str:
     return f"{secs // 3600}h {(secs % 3600) // 60}m"
 
 
-def main() -> int:
+def main(argv: list[str] | None = None) -> int:
+    args = parse_args(argv)
+    targets = [t.strip() for t in args.targets.split(",") if t.strip()]
+    for t in targets:
+        if t not in SOURCES:
+            print(f"Unknown target {t!r}; choose from {', '.join(SOURCES)}", file=sys.stderr)
+            return 2
+
     manifest = load_manifest()
     methods = sorted(manifest["modules"], key=lambda item: item["bit_position"])
     method_by_key = {method["key"]: method for method in methods}
@@ -56,14 +85,17 @@ def main() -> int:
 
     target_configs = []
     for target, source_path in SOURCES.items():
+        if target not in targets:
+            continue
         source = source_path.read_text(encoding="utf-8")
         target_methods = [
             method
             for method in methods
             if target not in method.get("incompatible_with", [])
-            and method.get("enabled", False)
         ]
         combos = list(iter_combinations([method["key"] for method in target_methods]))
+        if args.limit and args.limit > 0:
+            combos = combos[: args.limit]
         target_configs.append({
             "target": target,
             "source": source,
@@ -75,6 +107,7 @@ def main() -> int:
     done = 0
     start_time = time.time()
 
+    worker_count = max(1, min(12, int(os.getenv("HERCULES_EXAMPLE_WORKERS", "8"))))
     for tc in target_configs:
         target_examples = {
             "source": tc["source"],
@@ -82,22 +115,26 @@ def main() -> int:
             "items": {},
         }
 
-        for combo in tc["combos"]:
-            elapsed = time.time() - start_time
-            rate = done / elapsed if elapsed > 0 else 0
-            remaining = total_combos - done
-            eta = remaining / rate if rate > 0 else 0
-            pct = (done / total_combos * 100) if total_combos > 0 else 0
-            sys.stdout.write(
-                f"\r  [{tc['target']:<5}] [{pct:5.1f}%] "
-                f"{done}/{total_combos}  "
-                f"({rate:.0f}/s, ETA: {format_eta(eta)})  "
-            )
-            sys.stdout.flush()
-
-            item = generate_example(tc["target"], tc["source"], combo, method_by_key)
-            target_examples["items"][combo_key(combo)] = item
-            done += 1
+        with ThreadPoolExecutor(max_workers=worker_count) as executor:
+            futures = {
+                executor.submit(generate_example, tc["target"], tc["source"], combo, method_by_key): combo
+                for combo in tc["combos"]
+            }
+            for future in as_completed(futures):
+                combo = futures[future]
+                elapsed = time.time() - start_time
+                rate = done / elapsed if elapsed > 0 else 0
+                remaining = total_combos - done
+                eta = remaining / rate if rate > 0 else 0
+                pct = (done / total_combos * 100) if total_combos > 0 else 0
+                sys.stdout.write(
+                    f"\r  [{tc['target']:<5}] [{pct:5.1f}%] "
+                    f"{done}/{total_combos}  "
+                    f"({rate:.0f}/s, ETA: {format_eta(eta)})  "
+                )
+                sys.stdout.flush()
+                target_examples["items"][combo_key(combo)] = future.result()
+                done += 1
 
         examples[tc["target"]] = target_examples
 
@@ -118,6 +155,8 @@ def load_manifest() -> dict[str, Any]:
         cwd=SRC,
         capture_output=True,
         text=True,
+        encoding="utf-8",
+        errors="replace",
         check=True,
         timeout=30,
     )
@@ -161,6 +200,8 @@ def generate_example(
             cwd=SRC,
             capture_output=True,
             text=True,
+            encoding="utf-8",
+            errors="replace",
             timeout=60,
         )
         if result.returncode != 0:

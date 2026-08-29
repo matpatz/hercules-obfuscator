@@ -1,5 +1,6 @@
 import math
 import os
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -28,6 +29,22 @@ MODULES = [
 ]
 
 
+def resolve_lua_bin():
+    """Return the Lua interpreter to use for the worker.
+
+    Honors LUA_BIN if set, otherwise picks the first available of the common
+    names (lua5.4, lua5.3, lua). `lua5.4` is the historical default but does not
+    exist on all platforms (e.g. Windows installs usually name it `lua`).
+    """
+    env = os.getenv("LUA_BIN")
+    if env:
+        return env
+    for candidate in ("lua5.4", "lua5.3", "lua"):
+        if shutil.which(candidate):
+            return candidate
+    return "lua5.4"  # fall back; the worker will surface a clear error
+
+
 def main():
     if len(sys.argv) != 2:
         print("usage: fixture_sweep_parallel.py <fixture>", file=sys.stderr)
@@ -36,7 +53,7 @@ def main():
     fixture = sys.argv[1]
     workers = max(1, int(os.getenv("HERCULES_LUA_TEST_WORKERS", str(os.cpu_count() or 1))))
     chunk_size = max(1, int(os.getenv("HERCULES_LUA_TEST_CHUNK_SIZE", "64")))
-    lua_bin = os.getenv("LUA_BIN", "lua5.4")
+    lua_bin = resolve_lua_bin()
 
     chunks = list(make_chunks(chunk_size))
     done = 0

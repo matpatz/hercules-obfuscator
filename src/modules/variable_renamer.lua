@@ -17,6 +17,7 @@
 
 local Ast = require("Parser/Ast")
 local Parser = require("Parser")
+local config = require("config")
 
 local VariableRenamer = {}
 
@@ -166,13 +167,12 @@ function VariableRenamer.process(code, options)
         builtins = filtered
     end
 
-    local ok, parsed = Parser.parse(code)
-    if not ok then
-        -- Not valid (or parseable) Lua: leave the input untouched rather than
-        -- risking a destructive partial transformation.
-        return code
+    local root = config._ast
+    if not root then
+        local ok, parsed = Parser.parse(code)
+        if not ok then return code end
+        root = parsed.root
     end
-    local root = parsed.root
 
     -- Step 1: Collect every local binding and its declaration name.
     local bindings = {}

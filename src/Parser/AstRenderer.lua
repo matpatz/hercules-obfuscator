@@ -1,59 +1,42 @@
--- Parser/AstRenderer.lua
--- Emits Lua source text from the AST produced by Parser/LuauParser.
---
--- The transpiled Luau parser produces Luau's official AST shaped with `kind`
--- keys (StatBlock, StatLocal, ExprBinary, ...). The bundled Parser/LuauRenderer
--- was written against a different schema and cannot render this AST, so this
--- module is the canonical renderer for Parser output.
---
--- Design goals:
---   * Faithful: re-emitted source must compile and behave identically.
---   * Deterministic: identical output for a given resolved AST (no dependence
---     on the input's original whitespace, quote style, or number spelling).
---   * Configurable: opts selects formatting and language features.
---
--- opts:
---   opts.indent   (string, default "  ") the unit added per nesting level.
---   opts.allow_luau (boolean) reserved for future Luau-only feature emission;
---                    always renders Lua-compatible output today.
-
 local AstRenderer = {}
 
 local table_concat = table.concat
 local string_format = string.format
 
---------------------------------------------------------------------------------
--- Precedence (Lua 5.x standard, matches the parser's expression grammar)
---------------------------------------------------------------------------------
 local BINARY_PREC = {
-    [15] = 1, -- Or
-    [14] = 2, -- And
-    [9] = 3, [8] = 3, [10] = 3, [11] = 3, [12] = 3, [13] = 3, -- == ~= < <= > >=
-    [7] = 5,  -- ..
-    [0] = 6, [1] = 6, -- + -
-    [2] = 7, [3] = 7, [4] = 7, [5] = 7, -- * / // %
-    [6] = 10, -- ^
+    [15] = 1,
+    [14] = 2,
+    [9] = 3, [8] = 3, [10] = 3, [11] = 3, [12] = 3, [13] = 3,
+    [17] = 4,
+    [18] = 5,
+    [16] = 6,
+    [19] = 7, [20] = 7,
+    [7] = 8,
+    [0] = 9, [1] = 9,
+    [2] = 10, [3] = 10, [4] = 10, [5] = 10,
+    [6] = 12,
 }
-local UNARY_PREC = 8
-local POW_PREC = 10
+local UNARY_PREC = 11
+local POW_PREC = 12
 
-local RIGHT_ASSOC = { [7] = true, [6] = true } -- .. and ^
+local RIGHT_ASSOC = { [7] = true, [6] = true }
 
 local BINARY_TEXT = {
     [15] = "or", [14] = "and",
     [9] = "==", [8] = "~=", [10] = "<", [11] = "<=", [12] = ">", [13] = ">=",
+    [17] = "|", [18] = "~", [16] = "&", [19] = "<<", [20] = ">>",
     [7] = "..", [0] = "+", [1] = "-", [2] = "*", [3] = "/", [4] = "//", [5] = "%",
     [6] = "^",
 }
-local UNARY_TEXT = { [0] = "not", [1] = "-", [2] = "#" }
+local UNARY_TEXT = { [0] = "not", [1] = "-", [2] = "#", [3] = "~" }
 local COMPOUND_TEXT = {
     [0] = "+=", [1] = "-=", [2] = "*=", [3] = "/=", [4] = "//=", [5] = "%=",
-    [6] = "^=", [7] = "..=",
+    [6] = "^=", [7] = "..=", [19] = "<<=", [20] = ">>=", [16] = "&=", [17] = "|=",
 }
 
 local function num_to_literal(value)
     if type(value) ~= "number" then return tostring(value) end
-    -- %g avoids trailing .0 noise; %.17g round-trips doubles safely.
+
     return string_format("%.17g", value):gsub("e%+", "e")
 end
 
@@ -63,8 +46,6 @@ end
 
 local render_expr
 
--- Parenthesize a sub-expression when the surrounding context needs stronger
--- binding than the child provides (respecting right-associativity).
 local function render_expr_at(e, context_prec, is_right)
     if type(e) ~= "table" then return "" end
     if e.kind ~= "ExprBinary" then
@@ -79,8 +60,7 @@ local function render_expr_at(e, context_prec, is_right)
     if child_prec < context_prec then
         need = true
     elseif child_prec == context_prec then
-        -- left-assoc: right child of same precedence needs parens unless the op
-        -- is right-associative (then the right child is fine, left child isn't).
+
         need = is_right and (not RIGHT_ASSOC[child_prec])
     else
         need = false
@@ -119,7 +99,7 @@ local function render_local_bindings(names)
 end
 
 local function render_block_lines(block, indent_line)
-    -- Accepts a StatBlock node (common) or a plain statement list.
+
     local stmts = (type(block) == "table" and block.body) or block or {}
     local lines = {}
     for _, st in ipairs(stmts) do
@@ -268,7 +248,7 @@ function AstRenderer.render_stat(st, ind)
     elseif kind == "StatCompoundAssign" then
         local var = render_expr(st.var)
         if AstRenderer.lower_compound then
-            -- Lua targets cannot use `x op= v`; lower to `x = x op v`.
+
             return head .. var .. " = " .. var .. " " .. (BINARY_TEXT[st.op] or "") .. " " .. render_expr(st.value)
         end
         return head .. var .. " " .. (COMPOUND_TEXT[st.op] or "") .. " " .. render_expr(st.value)
@@ -350,9 +330,7 @@ end
 function AstRenderer.render(ast, opts)
     opts = opts or {}
     AstRenderer.indent = opts.indent or "    "
-    -- Language feature control. Lua (default) has no compound assignment, so
-    -- lower Luau `x op= v` to `x = x op v`. Pass lower_compound=false to keep
-    -- the Luau form for Luau targets.
+
     if opts.lower_compound ~= nil then
         AstRenderer.lower_compound = opts.lower_compound
     else

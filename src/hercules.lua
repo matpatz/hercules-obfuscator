@@ -286,9 +286,11 @@ local function printUsage()
         { flags = {"--folder", ""}, description = "Process all Lua files in the given folder" },
         { flags = {"--sanity", ""}, description = "Check if obfuscated code output matches original" },
         { flags = {"--target <t>", ""}, description = "Target runtime: 'lua', 'luau' (Roblox), or 'glua' (Garry's Mod)" },
+        { flags = {"--lua-version <v>", ""}, description = "Lua target version: 5.1, 5.2, 5.3, or 5.4 (default 5.4)" },
         { flags = {"--watermark <text>", ""}, description = "Use custom watermark text for this run" },
         { flags = {"--watermark-file <path>", ""}, description = "Use a custom watermark module file for this run" },
         { flags = {"--no-watermark", ""}, description = "Disable watermark output for this run" },
+        { flags = {"--no-compressor", ""}, description = "Disable compressor output for this run" },
         { flags = {"--manifest-json", ""}, description = "Print API manifest JSON and exit" }
     }
     for _, flag in ipairs(general_flags) do
@@ -380,9 +382,11 @@ local function main()
         sanity_check = false,
         target = nil,
         target_override = false,
+        lua_version = nil,
         watermark = nil,
         watermark_file = nil,
         no_watermark = false,
+        no_compressor = false,
     }
 
     local features = {}
@@ -400,6 +404,8 @@ local function main()
             options.sanity_check = true
         elseif arg[i] == "--no-watermark" then
             options.no_watermark = true
+        elseif arg[i] == "--no-compressor" then
+            options.no_compressor = true
         elseif arg[i] == "--watermark" then
             local next_arg = arg[i + 1]
             if next_arg and next_arg ~= "" then
@@ -433,6 +439,16 @@ local function main()
                 i = i + 1
             else
                 print(colors.red .. "Error: --target requires 'lua', 'luau', or 'glua'" .. colors.reset)
+                printUsage()
+                os.exit(1)
+            end
+        elseif arg[i] == "--lua-version" then
+            local next_arg = arg[i + 1]
+            if next_arg == "5.1" or next_arg == "5.2" or next_arg == "5.3" or next_arg == "5.4" then
+                options.lua_version = next_arg
+                i = i + 1
+            else
+                print(colors.red .. "Error: --lua-version requires '5.1', '5.2', '5.3', or '5.4'" .. colors.reset)
                 printUsage()
                 os.exit(1)
             end
@@ -490,6 +506,9 @@ local function main()
 
     if preset or single_enabled then
         apply_method_selection(selected_methods)
+    end
+    if options.no_compressor then
+        config.settings.compressor.enabled = false
     end
 
     local base_module_enabled = {}
@@ -553,6 +572,9 @@ local function main()
         end
 
         config.target = options.target
+        if options.lua_version then
+            config.lua_version = options.lua_version
+        end
         for _, method in ipairs(manifest.modules) do
             config.settings[method.config_key].enabled =
                 base_module_enabled[method.config_key] and not manifest.is_incompatible(method, options.target)

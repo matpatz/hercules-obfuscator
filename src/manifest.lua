@@ -349,7 +349,7 @@ manifest.modules = {
     },
     {
         key = "parser",
-        config_key = "Parser",
+        config_key = "parser",
         name = "Parser",
         module = "Parser",
         enabled = true,
@@ -357,7 +357,7 @@ manifest.modules = {
         pipeline_order = 0,
         cli = { short = "-p", long = "--parser" },
         incompatible_with = {},
-        description = "Parse input into an AST (Luau parser transpiled to Lua). Off by default; downstream modules consume the AST via Parser.parse.",
+        description = "Enable parser",
     },
 }
 

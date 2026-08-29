@@ -1,34 +1,15 @@
--- Parser/Ast.lua
--- Utility layer over the .kind AST emitted by Parser/LuauParser.
---
--- The raw parser AST is a plain tree of node tables (each carrying `kind`) and
--- anonymous binding tables (carrying `name`). ExprLocal references and
--- declarations (StatLocal.vars, StatLocalFunction.name, ExprFunction.args,
--- StatFor.var, StatForIn.vars, StatCompoundAssign...) point at the SAME binding
--- table, so mutating a binding's `name` field renames every reference and
--- declaration in one step, exactly within its scope.
---
--- This module provides:
---   * generic traversal:   Ast.each, Ast.find, Ast.count
---   * structural rewrite:  Ast.rewrite (with per-field exclusions)
---   * node constructors:   Ast.bind, Ast.global, Ast.local_ref, Ast.index_name,
---     Ast.index_expr, Ast.local_, Ast.expr_stat, Ast.block, and helpers for the
---     expression/statement kinds consumers commonly build.
---
--- Node field names follow the renderer contract in Parser/AstRenderer.
-
 local Ast = {}
 
 local table_concat = table.concat
 local table_insert = table.insert
 
--- Operators (ids match Parser/LuauParser's BINARY_TEXT / UNARY_TEXT maps).
 Ast.OPS = {
     add = 0, sub = 1, mul = 2, div = 3, idiv = 4, mod = 5, pow = 6,
     concat = 7, neq = 8, eq = 9, lt = 10, lte = 11, gt = 12, gte = 13,
     _and = 14, _or = 15,
+    band = 16, bor = 17, bxor = 18, shl = 19, shr = 20,
 }
-Ast.UNARY = { not_ = 0, neg = 1, len = 2 }
+Ast.UNARY = { not_ = 0, neg = 1, len = 2, bnot = 3 }
 Ast.INDEX_DOT, Ast.INDEX_COLON = 46, 58
 
 local function is_node(v)
@@ -39,13 +20,6 @@ local function is_list(v)
     return type(v) == "table" and rawget(v, 1) ~= nil
 end
 
---------------------------------------------------------------------------------
--- Traversal
---------------------------------------------------------------------------------
-
--- Visits every node (table with `kind`) reachable from `root` in pre-order.
--- Anonymous binding tables are traversed but never visited. Shared nodes are
--- visited once (cycle safe).
 function Ast.each(root, fn)
     local seen = {}
     local function walk(v)
@@ -78,18 +52,6 @@ function Ast.count(root, pred)
     return n
 end
 
---------------------------------------------------------------------------------
--- Structural rewrite
---------------------------------------------------------------------------------
-
--- Rebuilds the tree under `root` bottom-up. `fn(node)` may return a replacement
--- node (or nil for "unchanged"); the caller's returned table replaces the node
--- wherever it is referenced by its parent. Nodes are processed in place, so any
--- returned replacement must be a fresh node rather than the node itself.
---
--- opts.exclude: map of node kind -> { fieldName = true, ... }; the children of
--- those fields are copied through untouched (neither visited nor passed to fn).
--- Useful for assignment targets, which are not expression usages.
 function Ast.rewrite(root, fn, opts)
     opts = opts or {}
     local exclude = opts.exclude or {}
@@ -122,11 +84,6 @@ function Ast.rewrite(root, fn, opts)
     return rewrite_value(root)
 end
 
---------------------------------------------------------------------------------
--- Constructors
---------------------------------------------------------------------------------
-
--- Anonymous binding: shares identity with the declaration and every reference.
 function Ast.bind(name)
     return { name = name }
 end
@@ -190,7 +147,6 @@ function Ast.call(func, args)
     return { kind = "ExprCall", func = func, args = args or {} }
 end
 
--- args: list of binding tables; body: list of statements.
 function Ast.function_(args, body, vararg)
     return {
         kind = "ExprFunction",
@@ -252,11 +208,6 @@ function Ast.assign(vars, values)
     return { kind = "StatAssign", vars = vars, values = values or {} }
 end
 
---------------------------------------------------------------------------------
--- Utility
---------------------------------------------------------------------------------
-
--- Renders the AST back to source text (convenience around Parser.render).
 function Ast.render(root, opts)
     return require("Parser/AstRenderer").render(root, opts)
 end
